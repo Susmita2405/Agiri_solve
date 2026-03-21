@@ -1,5 +1,3 @@
--- AgriMind AI Database Schema
--- Run this file to initialize the database
 
 -- Users Table
 CREATE TABLE IF NOT EXISTS users (
