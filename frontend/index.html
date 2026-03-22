@@ -1,883 +1,841 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AgriMind AI — Smart Farming Assistant</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Mukta:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/main.css" />
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#2d6a2d" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AgriMind AI — Smart Farming Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Mukta:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/main.css" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#2d6a2d" />
 </head>
 <body>
 
-<!-- ===== APP SHELL ===== -->
 <div id="app">
 
-  <!-- AUTH SCREEN -->
-  <div id="auth-screen" class="screen active">
-    <div class="auth-bg">
-      <div class="auth-leaves"></div>
-    </div>
-    <div class="auth-container">
-      <div class="auth-logo">
-        <div class="logo-icon">🌾</div>
-        <h1>AgriMind AI</h1>
-        <p>आपका स्मार्ट कृषि सहायक</p>
-        <p class="logo-sub">Your Smart Farming Assistant</p>
-      </div>
-
-      <!-- Tabs -->
-      <div class="auth-tabs">
-        <button class="auth-tab active" onclick="switchAuthTab('login')">Login / लॉगिन</button>
-        <button class="auth-tab" onclick="switchAuthTab('register')">Register / रजिस्टर</button>
-      </div>
-
-      <!-- Login Form -->
-      <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
-        <div class="form-group">
-          <label>📱 Phone Number / मोबाइल नंबर</label>
-          <input type="tel" id="login-phone" placeholder="10-digit mobile number" maxlength="10" required />
-        </div>
-        <div class="form-group">
-          <label>🔒 Password / पासवर्ड</label>
-          <input type="password" id="login-password" placeholder="Enter password" required />
-        </div>
-        <div id="login-error" class="form-error"></div>
-        <button type="submit" class="btn-primary btn-large">
-          <span class="btn-text">Login</span>
-          <span class="btn-loader hidden">⏳</span>
-        </button>
-        <p class="demo-hint">Demo: Phone: 9999999999 | Password: demo123</p>
-      </form>
-
-      <!-- Register Form -->
-      <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
-        <div class="form-group">
-          <label>👤 Full Name / पूरा नाम</label>
-          <input type="text" id="reg-name" placeholder="Your full name" required />
-        </div>
-        <div class="form-group">
-          <label>📱 Phone Number / मोबाइल नंबर</label>
-          <input type="tel" id="reg-phone" placeholder="10-digit mobile number" maxlength="10" required />
-        </div>
-        <div class="form-group">
-          <label>🔒 Password / पासवर्ड</label>
-          <input type="password" id="reg-password" placeholder="Min 6 characters" required />
-        </div>
-        <div class="form-group">
-          <label>👥 Register As</label>
-          <select id="reg-role">
-            <option value="farmer">Farmer / किसान</option>
-            <option value="buyer">Buyer / खरीदार</option>
-          </select>
-        </div>
-        <div id="register-error" class="form-error"></div>
-        <button type="submit" class="btn-primary btn-large">
-          <span class="btn-text">Register</span>
-          <span class="btn-loader hidden">⏳</span>
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- MAIN APP SCREEN -->
-  <div id="main-screen" class="screen hidden">
-
-    <!-- Top Header -->
-    <header class="app-header">
-      <div class="header-left">
-        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-        <div class="header-logo">🌾 <span>AgriMind AI</span></div>
-      </div>
-      <div class="header-right">
-        <div class="weather-badge" id="season-badge">🌱 Kharif Season</div>
-        <div class="user-avatar" onclick="showPage('profile')" id="user-avatar">👨‍🌾</div>
-      </div>
-    </header>
-
-    <!-- Sidebar Nav -->
-    <nav class="sidebar" id="sidebar">
-      <div class="sidebar-user">
-        <div class="sidebar-avatar">👨‍🌾</div>
-        <div class="sidebar-user-info">
-          <span id="sidebar-name">Farmer</span>
-          <span id="sidebar-phone" class="sidebar-phone">Loading...</span>
-        </div>
-      </div>
-      <div class="sidebar-nav">
-        <a class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
-          <span class="nav-icon">🏠</span><span>Dashboard</span>
-        </a>
-        <a class="nav-item" onclick="showPage('crop')" data-page="crop">
-          <span class="nav-icon">🌾</span><span>Crop Advice</span>
-        </a>
-        <a class="nav-item" onclick="showPage('disease')" data-page="disease">
-          <span class="nav-icon">🔬</span><span>Disease Detect</span>
-        </a>
-        <a class="nav-item" onclick="showPage('market')" data-page="market">
-          <span class="nav-icon">💰</span><span>Market Prices</span>
-        </a>
-        <a class="nav-item" onclick="showPage('schemes')" data-page="schemes">
-          <span class="nav-icon">🏛️</span><span>Govt Schemes</span>
-        </a>
-        <a class="nav-item" onclick="showPage('marketplace')" data-page="marketplace">
-          <span class="nav-icon">🛒</span><span>Marketplace</span>
-        </a>
-        <a class="nav-item" onclick="showPage('profile')" data-page="profile">
-          <span class="nav-icon">👤</span><span>My Profile</span>
-        </a>
-      </div>
-      <button class="sidebar-logout" onclick="logout()">🚪 Logout</button>
-    </nav>
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
-
-    <!-- Page Content Area -->
-    <main class="main-content">
-
-      <!-- ── DASHBOARD PAGE ── -->
-      <div id="page-dashboard" class="page active">
-        <div class="page-header">
-          <h2>Welcome back, <span id="dash-name">Farmer</span>! 🙏</h2>
-          <p id="dash-date" class="page-subtitle"></p>
-        </div>
-
-        <!-- Quick Stats -->
-        <div class="stats-grid">
-          <div class="stat-card stat-green" onclick="showPage('schemes')">
-            <div class="stat-icon">🏛️</div>
-            <div class="stat-info">
-              <span class="stat-number" id="stat-schemes">25</span>
-              <span class="stat-label">Govt Schemes</span>
-            </div>
-          </div>
-          <div class="stat-card stat-orange" onclick="showPage('market')">
-            <div class="stat-icon">💰</div>
-            <div class="stat-info">
-              <span class="stat-number" id="stat-crops">12</span>
-              <span class="stat-label">Market Prices</span>
-            </div>
-          </div>
-          <div class="stat-card stat-blue" onclick="showPage('marketplace')">
-            <div class="stat-icon">🛒</div>
-            <div class="stat-info">
-              <span class="stat-number" id="stat-listings">—</span>
-              <span class="stat-label">Marketplace</span>
-            </div>
-          </div>
-          <div class="stat-card stat-purple" onclick="showPage('crop')">
-            <div class="stat-icon">🌱</div>
-            <div class="stat-info">
-              <span class="stat-number">AI</span>
-              <span class="stat-label">Crop Advisor</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <h3 class="section-title">⚡ Quick Actions</h3>
-        <div class="quick-actions">
-          <button class="quick-btn" onclick="showPage('crop')">
-            <span class="qb-icon">🌾</span>
-            <span>Crop<br>Advice</span>
-          </button>
-          <button class="quick-btn" onclick="showPage('disease')">
-            <span class="qb-icon">📸</span>
-            <span>Disease<br>Detect</span>
-          </button>
-          <button class="quick-btn" onclick="showPage('market')">
-            <span class="qb-icon">📊</span>
-            <span>Market<br>Price</span>
-          </button>
-          <button class="quick-btn" onclick="showPage('schemes')">
-            <span class="qb-icon">💼</span>
-            <span>Govt<br>Schemes</span>
-          </button>
-          <button class="quick-btn" onclick="showPage('marketplace')">
-            <span class="qb-icon">🛒</span>
-            <span>Sell<br>Crops</span>
-          </button>
-          <button class="quick-btn" onclick="toggleVoiceAssistant()">
-            <span class="qb-icon">🎤</span>
-            <span>Voice<br>Help</span>
-          </button>
-        </div>
-
-        <!-- Today's Prices -->
-        <h3 class="section-title">📊 Today's Top Market Prices</h3>
-        <div id="dash-prices" class="price-ticker">
-          <div class="ticker-loading">Loading prices...</div>
-        </div>
-
-        <!-- Season Tips -->
-        <h3 class="section-title">💡 Seasonal Tips</h3>
-        <div id="season-tips" class="tips-grid"></div>
-
-        <!-- Profile Prompt -->
-        <div id="profile-prompt" class="info-banner hidden">
-          <span>📝 Complete your profile to get personalized crop recommendations!</span>
-          <button onclick="showPage('profile')" class="btn-small">Setup Profile</button>
-        </div>
-      </div>
-
-      <!-- ── CROP RECOMMENDATION PAGE ── -->
-      <div id="page-crop" class="page hidden">
-        <div class="page-header">
-          <h2>🌾 Crop Recommendation</h2>
-          <p class="page-subtitle">Get AI-powered crop suggestions for your land</p>
-        </div>
-
-        <div class="card">
-          <h3>📋 Enter Your Farm Details</h3>
-          <form id="crop-form" onsubmit="getCropRecommendation(event)">
-            <div class="form-row">
-              <div class="form-group">
-                <label>🏔️ Soil Type / मिट्टी का प्रकार</label>
-                <select id="crop-soil" required>
-                  <option value="">Select soil type</option>
-                  <option value="clay">Clay / चिकनी मिट्टी</option>
-                  <option value="sandy">Sandy / बलुई मिट्टी</option>
-                  <option value="loamy">Loamy / दोमट मिट्टी (Best)</option>
-                  <option value="silt">Silt / गाद मिट्टी</option>
-                  <option value="peaty">Peaty / पीट मिट्टी</option>
-                  <option value="mixed">Mixed / मिश्रित</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>📐 Land Size / जमीन का क्षेत्रफल</label>
-                <input type="number" id="crop-land" placeholder="e.g., 2.5" step="0.1" min="0.1" required />
-                <span class="input-suffix">acres</span>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>📍 State / राज्य</label>
-                <select id="crop-state">
-                  <option value="West Bengal">West Bengal</option>
-                  <option value="Bihar">Bihar</option>
-                  <option value="Odisha">Odisha</option>
-                  <option value="Uttar Pradesh">Uttar Pradesh</option>
-                  <option value="Punjab">Punjab</option>
-                  <option value="Haryana">Haryana</option>
-                  <option value="Maharashtra">Maharashtra</option>
-                  <option value="Karnataka">Karnataka</option>
-                  <option value="Andhra Pradesh">Andhra Pradesh</option>
-                  <option value="Tamil Nadu">Tamil Nadu</option>
-                  <option value="Rajasthan">Rajasthan</option>
-                  <option value="Madhya Pradesh">Madhya Pradesh</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>🌊 Water Availability</label>
-                <select id="crop-water">
-                  <option value="high">High (River/Canal)</option>
-                  <option value="medium">Medium (Well/Bore)</option>
-                  <option value="low">Low (Rain-fed)</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>🗓️ Sowing Season</label>
-                <select id="crop-season">
-                  <option value="">Auto-detect (Recommended)</option>
-                  <option value="kharif">Kharif (June-Sept)</option>
-                  <option value="rabi">Rabi (Oct-Feb)</option>
-                  <option value="zaid">Zaid (Mar-May)</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>💵 Budget / बजट</label>
-                <input type="number" id="crop-budget" placeholder="e.g., 20000" />
-                <span class="input-suffix">₹</span>
-              </div>
-            </div>
-            <button type="submit" class="btn-primary btn-full">
-              🤖 Get AI Crop Recommendations
-            </button>
-          </form>
-        </div>
-
-        <div id="crop-results" class="hidden">
-          <h3 class="section-title">🎯 Recommended Crops for Your Farm</h3>
-          <div id="crop-explanation" class="explanation-box"></div>
-          <div id="crop-cards" class="crop-cards-grid"></div>
-        </div>
-      </div>
-
-      <!-- ── DISEASE DETECTION PAGE ── -->
-      <div id="page-disease" class="page hidden">
-        <div class="page-header">
-          <h2>🔬 Disease Detection</h2>
-          <p class="page-subtitle">Upload a leaf photo to detect diseases instantly</p>
-        </div>
-
-        <div class="card">
-          <div class="upload-zone" id="upload-zone" onclick="document.getElementById('disease-image').click()">
-            <div class="upload-icon">📸</div>
-            <h3>Click to Upload Leaf Photo</h3>
-            <p>Take a clear photo of the affected leaf</p>
-            <p class="upload-hint">Supports: JPEG, PNG, WebP | Max: 10MB</p>
-            <input type="file" id="disease-image" accept="image/*" hidden onchange="previewImage(event)" />
-          </div>
-          <div id="image-preview" class="hidden">
-            <img id="preview-img" src="" alt="Preview" />
-            <button class="btn-secondary" onclick="clearImage()">✕ Remove</button>
-          </div>
-          <div class="form-group" style="margin-top:1rem;">
-            <label>🌿 Crop Name (Optional)</label>
-            <input type="text" id="disease-crop" placeholder="e.g., Tomato, Rice, Potato" />
-          </div>
-          <button class="btn-primary btn-full" onclick="detectDisease()" id="detect-btn">
-            🔬 Analyze Disease
-          </button>
-        </div>
-
-        <div id="disease-result" class="hidden">
-          <div class="disease-result-card" id="disease-result-content"></div>
-        </div>
-
-        <div class="card info-card">
-          <h4>📌 Tips for Best Results:</h4>
-          <ul>
-            <li>Take photo in good natural light</li>
-            <li>Focus on the most affected leaf</li>
-            <li>Include both healthy and affected parts</li>
-            <li>Avoid blurry or dark photos</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Smart Sell System -->
-<div class="card" style="border:2px solid #1a4d1a;background:linear-gradient(135deg,#fff 80%,#f0f7f0)">
-  <h3 style="color:#1a4d1a">🎯 Smart Sell — Find Best Buyer</h3>
-  <p class="card-subtitle">Enter your crop details — AI finds the most profitable buyer including transport cost</p>
-
-  <div class="form-row">
-    <div class="form-group">
-      <label>🌾 Your Crop</label>
-      <input type="text" id="ss-crop" placeholder="e.g., Potato, Onion, Rice" />
-    </div>
-    <div class="form-group">
-      <label>⚖️ Quantity (kg)</label>
-      <input type="number" id="ss-qty" placeholder="e.g., 500" min="1" />
-    </div>
-  </div>
-  <div class="form-group">
-    <label>📍 Your City/District</label>
-    <input type="text" id="ss-city" placeholder="e.g., Bhatpara, Durgapur, Bardhaman" />
-  </div>
-  <button class="btn-primary btn-full" id="ss-btn" onclick="getSmartSellSuggestion()">
-    🎯 Find Best Buyer & Max Profit
-  </button>
-  <div id="ss-result" style="display:none;margin-top:1rem"></div>
+<!-- ===== AUTH SCREEN ===== -->
+<div id="auth-screen" class="screen active">
+<div class="auth-bg"><div class="auth-leaves"></div></div>
+<div class="auth-container">
+<div class="auth-logo">
+<div class="logo-icon">🌾</div>
+<h1>AgriMind AI</h1>
+<p>आपका स्मार्ट कृषि सहायक</p>
+<p class="logo-sub">Your Smart Farming Assistant</p>
+</div>
+<div class="auth-tabs">
+<button class="auth-tab active" onclick="switchAuthTab('login')">Login / लॉगिन</button>
+<button class="auth-tab" onclick="switchAuthTab('register')">Register / रजिस्टर</button>
+</div>
+<form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+<div class="form-group">
+<label>📱 Phone Number / मोबाइल नंबर</label>
+<input type="tel" id="login-phone" placeholder="10-digit mobile number" maxlength="10" required />
+</div>
+<div class="form-group">
+<label>🔒 Password / पासवर्ड</label>
+<input type="password" id="login-password" placeholder="Enter password" required />
+</div>
+<div id="login-error" class="form-error"></div>
+<button type="submit" class="btn-primary btn-large">
+<span class="btn-text">Login</span>
+<span class="btn-loader hidden">⏳</span>
+</button>
+<p class="demo-hint">Demo: Phone: 9999999999 | Password: demo123</p>
+</form>
+<form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
+<div class="form-group">
+<label>👤 Full Name / पूरा नाम</label>
+<input type="text" id="reg-name" placeholder="Your full name" required />
+</div>
+<div class="form-group">
+<label>📱 Phone Number / मोबाइल नंबर</label>
+<input type="tel" id="reg-phone" placeholder="10-digit mobile number" maxlength="10" required />
+</div>
+<div class="form-group">
+<label>🔒 Password / पासवर्ड</label>
+<input type="password" id="reg-password" placeholder="Min 6 characters" required />
+</div>
+<div class="form-group">
+<label>👥 Register As</label>
+<select id="reg-role">
+<option value="farmer">Farmer / किसान</option>
+<option value="buyer">Buyer / खरीदार</option>
+</select>
+</div>
+<div id="register-error" class="form-error"></div>
+<button type="submit" class="btn-primary btn-large">
+<span class="btn-text">Register</span>
+<span class="btn-loader hidden">⏳</span>
+</button>
+</form>
+</div>
 </div>
 
-<!-- Buyer Price Board -->
+<!-- ===== MAIN APP SCREEN ===== -->
+<div id="main-screen" class="screen hidden">
+
+<!-- Header -->
+<header class="app-header">
+<div class="header-left">
+<button class="menu-btn" onclick="toggleSidebar()">☰</button>
+<div class="header-logo">🌾 <span>AgriMind AI</span></div>
+</div>
+<div class="header-right">
+<div class="weather-badge" id="season-badge">🌱 Kharif Season</div>
+<div class="user-avatar" onclick="showPage('profile')" id="user-avatar">👨‍🌾</div>
+</div>
+</header>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+<div class="sidebar-user">
+<div class="sidebar-avatar">👨‍🌾</div>
+<div class="sidebar-user-info">
+<span id="sidebar-name">Farmer</span>
+<span id="sidebar-phone" class="sidebar-phone">Loading...</span>
+</div>
+</div>
+<div class="sidebar-nav">
+<a class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
+<span class="nav-icon">🏠</span><span>Dashboard</span>
+</a>
+<a class="nav-item" onclick="showPage('crop')" data-page="crop">
+<span class="nav-icon">🌾</span><span>Crop Advice</span>
+</a>
+<a class="nav-item" onclick="showPage('disease')" data-page="disease">
+<span class="nav-icon">🔬</span><span>Disease Detect</span>
+</a>
+<a class="nav-item" onclick="showPage('market')" data-page="market">
+<span class="nav-icon">💰</span><span>Market Prices</span>
+</a>
+<a class="nav-item" onclick="showPage('schemes')" data-page="schemes">
+<span class="nav-icon">🏛️</span><span>Govt Schemes</span>
+</a>
+<a class="nav-item" onclick="showPage('marketplace')" data-page="marketplace">
+<span class="nav-icon">🛒</span><span>Marketplace</span>
+</a>
+<a class="nav-item" onclick="showPage('profile')" data-page="profile">
+<span class="nav-icon">👤</span><span>My Profile</span>
+</a>
+</div>
+<button class="sidebar-logout" onclick="logout()">🚪 Logout</button>
+</nav>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- Main Content -->
+<main class="main-content">
+
+<!-- ══════════════════════════════════════
+     DASHBOARD PAGE
+════════════════════════════════════════ -->
+<div id="page-dashboard" class="page active">
+<div class="page-header">
+<h2>Welcome back, <span id="dash-name">Farmer</span>! 🙏</h2>
+<p id="dash-date" class="page-subtitle"></p>
+</div>
+<div class="stats-grid">
+<div class="stat-card stat-green" onclick="showPage('schemes')">
+<div class="stat-icon">🏛️</div>
+<div class="stat-info">
+<span class="stat-number" id="stat-schemes">25</span>
+<span class="stat-label">Govt Schemes</span>
+</div>
+</div>
+<div class="stat-card stat-orange" onclick="showPage('market')">
+<div class="stat-icon">💰</div>
+<div class="stat-info">
+<span class="stat-number" id="stat-crops">12</span>
+<span class="stat-label">Market Prices</span>
+</div>
+</div>
+<div class="stat-card stat-blue" onclick="showPage('marketplace')">
+<div class="stat-icon">🛒</div>
+<div class="stat-info">
+<span class="stat-number" id="stat-listings">—</span>
+<span class="stat-label">Marketplace</span>
+</div>
+</div>
+<div class="stat-card stat-purple" onclick="showPage('crop')">
+<div class="stat-icon">🌱</div>
+<div class="stat-info">
+<span class="stat-number">AI</span>
+<span class="stat-label">Crop Advisor</span>
+</div>
+</div>
+</div>
+<h3 class="section-title">⚡ Quick Actions</h3>
+<div class="quick-actions">
+<button class="quick-btn" onclick="showPage('crop')">
+<span class="qb-icon">🌾</span><span>Crop<br>Advice</span>
+</button>
+<button class="quick-btn" onclick="showPage('disease')">
+<span class="qb-icon">📸</span><span>Disease<br>Detect</span>
+</button>
+<button class="quick-btn" onclick="showPage('market')">
+<span class="qb-icon">📊</span><span>Market<br>Price</span>
+</button>
+<button class="quick-btn" onclick="showPage('schemes')">
+<span class="qb-icon">💼</span><span>Govt<br>Schemes</span>
+</button>
+<button class="quick-btn" onclick="showPage('marketplace')">
+<span class="qb-icon">🛒</span><span>Sell<br>Crops</span>
+</button>
+<button class="quick-btn" onclick="toggleVoiceAssistant()">
+<span class="qb-icon">🎤</span><span>Voice<br>Help</span>
+</button>
+</div>
+<h3 class="section-title">📊 Today's Top Market Prices</h3>
+<div id="dash-prices" class="price-ticker">
+<div class="ticker-loading">Loading prices...</div>
+</div>
+<h3 class="section-title">💡 Seasonal Tips</h3>
+<div id="season-tips" class="tips-grid"></div>
+<div id="profile-prompt" class="info-banner hidden">
+<span>📝 Complete your profile to get personalized crop recommendations!</span>
+<button onclick="showPage('profile')" class="btn-small">Setup Profile</button>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     CROP RECOMMENDATION PAGE
+════════════════════════════════════════ -->
+<div id="page-crop" class="page hidden">
+<div class="page-header">
+<h2>🌾 Crop Recommendation</h2>
+<p class="page-subtitle">Get AI-powered crop suggestions for your land</p>
+</div>
 <div class="card">
-  <h3>📋 Live Buyer Prices</h3>
-  <p class="card-subtitle">Prices updated by buyers daily</p>
-  <div class="filter-row">
-    <div class="form-group">
-      <label>🌾 Filter by Crop</label>
-      <input type="text" id="bp-filter" placeholder="e.g., Potato" oninput="loadBuyerPrices()" />
-    </div>
-  </div>
-  <div id="buyer-prices-list">
-    <div class="loading-msg">Loading buyer prices...</div>
-  </div>
+<h3>📋 Enter Your Farm Details</h3>
+<form id="crop-form" onsubmit="getCropRecommendation(event)">
+<div class="form-row">
+<div class="form-group">
+<label>🏔️ Soil Type / मिट्टी का प्रकार</label>
+<select id="crop-soil" required>
+<option value="">Select soil type</option>
+<option value="clay">Clay / चिकनी मिट्टी</option>
+<option value="sandy">Sandy / बलुई मिट्टी</option>
+<option value="loamy">Loamy / दोमट मिट्टी (Best)</option>
+<option value="silt">Silt / गाद मिट्टी</option>
+<option value="peaty">Peaty / पीट मिट्टी</option>
+<option value="mixed">Mixed / मिश्रित</option>
+</select>
+</div>
+<div class="form-group">
+<label>📐 Land Size / जमीन का क्षेत्रफल</label>
+<input type="number" id="crop-land" placeholder="e.g., 2.5" step="0.1" min="0.1" required />
+<span class="input-suffix">acres</span>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>📍 State / राज्य</label>
+<select id="crop-state">
+<option value="West Bengal">West Bengal</option>
+<option value="Bihar">Bihar</option>
+<option value="Odisha">Odisha</option>
+<option value="Uttar Pradesh">Uttar Pradesh</option>
+<option value="Punjab">Punjab</option>
+<option value="Haryana">Haryana</option>
+<option value="Maharashtra">Maharashtra</option>
+<option value="Karnataka">Karnataka</option>
+<option value="Andhra Pradesh">Andhra Pradesh</option>
+<option value="Tamil Nadu">Tamil Nadu</option>
+<option value="Rajasthan">Rajasthan</option>
+<option value="Madhya Pradesh">Madhya Pradesh</option>
+</select>
+</div>
+<div class="form-group">
+<label>🌊 Water Availability</label>
+<select id="crop-water">
+<option value="high">High (River/Canal)</option>
+<option value="medium">Medium (Well/Bore)</option>
+<option value="low">Low (Rain-fed)</option>
+</select>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>🗓️ Sowing Season</label>
+<select id="crop-season">
+<option value="">Auto-detect (Recommended)</option>
+<option value="kharif">Kharif (June-Sept)</option>
+<option value="rabi">Rabi (Oct-Feb)</option>
+<option value="zaid">Zaid (Mar-May)</option>
+</select>
+</div>
+<div class="form-group">
+<label>💵 Budget / बजट</label>
+<input type="number" id="crop-budget" placeholder="e.g., 20000" />
+<span class="input-suffix">₹</span>
+</div>
+</div>
+<button type="submit" class="btn-primary btn-full">
+🤖 Get AI Crop Recommendations
+</button>
+</form>
+</div>
+<div id="crop-results" class="hidden">
+<h3 class="section-title">🎯 Recommended Crops for Your Farm</h3>
+<div id="crop-explanation" class="explanation-box"></div>
+<div id="crop-cards" class="crop-cards-grid"></div>
+</div>
 </div>
 
-      <!-- ── MARKET PRICES PAGE ── -->
-      <div id="page-market" class="page hidden">
-        <div class="page-header">
-          <h2>💰 Market Prices</h2>
-          <p class="page-subtitle">Compare mandi prices & calculate best profit</p>
-        </div>
+<!-- ══════════════════════════════════════
+     DISEASE DETECTION PAGE
+════════════════════════════════════════ -->
+<div id="page-disease" class="page hidden">
+<div class="page-header">
+<h2>🔬 Disease Detection</h2>
+<p class="page-subtitle">Upload a leaf photo to detect diseases instantly</p>
+</div>
+<div class="card">
+<div class="upload-zone" id="upload-zone" onclick="document.getElementById('disease-image').click()">
+<div class="upload-icon">📸</div>
+<h3>Click to Upload Leaf Photo</h3>
+<p>Take a clear photo of the affected leaf</p>
+<p class="upload-hint">Supports: JPEG, PNG, WebP | Max: 10MB</p>
+<input type="file" id="disease-image" accept="image/*" hidden onchange="previewImage(event)" />
+</div>
+<div id="image-preview" class="hidden">
+<img id="preview-img" src="" alt="Preview" />
+<button class="btn-secondary" onclick="clearImage()">✕ Remove</button>
+</div>
+<div class="form-group" style="margin-top:1rem;">
+<label>🌿 Crop Name (Optional)</label>
+<input type="text" id="disease-crop" placeholder="e.g., Tomato, Rice, Potato" />
+</div>
+<button class="btn-primary btn-full" onclick="detectDisease()" id="detect-btn">
+🔬 Analyze Disease
+</button>
+</div>
+<div id="disease-result" class="hidden">
+<div class="disease-result-card" id="disease-result-content"></div>
+</div>
+<div class="card info-card">
+<h4>📌 Tips for Best Results:</h4>
+<ul>
+<li>Take photo in good natural light</li>
+<li>Focus on the most affected leaf</li>
+<li>Include both healthy and affected parts</li>
+<li>Avoid blurry or dark photos</li>
+</ul>
+</div>
+</div>
 
-        <!-- AI Smart Market Finder -->
-        <div class="card" style="border:2px solid #c8e6c9;background:linear-gradient(135deg,#fff 85%,#f0f7f0)">
-          <h3 style="color:#1a4d1a">🤖 AI Smart Market Finder</h3>
-          <p class="card-subtitle">Gemini AI will find the best market for maximum profit</p>
-          <div class="form-row">
-            <div class="form-group">
-              <label>🌾 Your Crop</label>
-              <input type="text" id="ai-crop" placeholder="e.g., Potato, Rice, Onion" />
-            </div>
-            <div class="form-group">
-              <label>⚖️ Quantity (kg)</label>
-              <input type="number" id="ai-qty" placeholder="e.g., 500" min="1" />
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>📍 Your Location</label>
-              <input type="text" id="ai-location" placeholder="e.g., Bhatpara, West Bengal" />
-            </div>
-            <div class="form-group">
-              <label>🚛 Transport Budget (₹)</label>
-              <input type="number" id="ai-budget" placeholder="e.g., 500" />
-            </div>
-          </div>
-          <button class="btn-primary btn-full" id="ai-suggest-btn" onclick="getAISuggestion()">
-            🤖 Get AI Suggestion
-          </button>
-          <div id="ai-result" class="hidden" style="margin-top:1rem"></div>
-        </div>
+<!-- ══════════════════════════════════════
+     MARKET PRICES PAGE
+════════════════════════════════════════ -->
+<div id="page-market" class="page hidden">
+<div class="page-header">
+<h2>💰 Market Prices</h2>
+<p class="page-subtitle">Compare mandi prices & calculate best profit</p>
+</div>
 
-        <!-- Filters -->
-        <div class="card">
-          <div class="filter-row">
-            <div class="form-group">
-              <label>🌾 Crop</label>
-              <select id="market-crop-filter" onchange="filterPrices()">
-                <option value="">All Crops</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>📍 State</label>
-              <select id="market-state-filter" onchange="filterPrices()">
-                <option value="">All States</option>
-                <option value="West Bengal">West Bengal</option>
-                <option value="Bihar">Bihar</option>
-                <option value="Odisha">Odisha</option>
-                <option value="Delhi">Delhi</option>
-                <option value="Maharashtra">Maharashtra</option>
-              </select>
-            </div>
-          </div>
-        </div>
+<!-- Smart Sell System -->
+<div class="card" style="border:2px solid #1a4d1a;background:linear-gradient(135deg,#fff 80%,#f0f7f0)">
+<h3 style="color:#1a4d1a">🎯 Smart Sell — Find Best Buyer</h3>
+<p class="card-subtitle">Enter your crop details — AI finds the most profitable buyer including transport cost</p>
+<div class="form-row">
+<div class="form-group">
+<label>🌾 Your Crop</label>
+<input type="text" id="ss-crop" placeholder="e.g., Potato, Onion, Rice" />
+</div>
+<div class="form-group">
+<label>⚖️ Quantity (kg)</label>
+<input type="number" id="ss-qty" placeholder="e.g., 500" min="1" />
+</div>
+</div>
+<div class="form-group">
+<label>📍 Your Exact Location</label>
+<input type="text" id="ss-city" placeholder="e.g., Jagaddal, North 24 Parganas" />
+<small style="color:#6c8c6c;font-size:.78rem">Enter your village/town — AI calculates exact distances to all markets</small>
+</div>
+<button class="btn-primary btn-full" id="ss-btn" onclick="getSmartSellSuggestion()">
+🎯 Find Best Buyer & Max Profit
+</button>
+<div id="ss-result" style="display:none;margin-top:1rem"></div>
+</div>
 
-        <!-- Price Table -->
-        <div class="card">
-          <h3>📊 Current Mandi Prices</h3>
-          <div id="prices-table-container">
-            <table class="prices-table" id="prices-table">
-              <thead>
-                <tr>
-                  <th>City</th>
-                  <th>Crop</th>
-                  <th>₹/kg</th>
-                  <th>Market</th>
-                </tr>
-              </thead>
-              <tbody id="prices-tbody">
-                <tr><td colspan="4" class="loading-row">Loading prices...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+<!-- Live Buyer Prices -->
+<div class="card">
+<h3>📋 Live Buyer Prices</h3>
+<p class="card-subtitle">Prices updated by buyers daily</p>
+<div class="filter-row">
+<div class="form-group">
+<label>🌾 Filter by Crop</label>
+<input type="text" id="bp-filter" placeholder="e.g., Potato" oninput="loadBuyerPrices()" />
+</div>
+</div>
+<div id="buyer-prices-list">
+<div class="loading-msg">Loading buyer prices...</div>
+</div>
+</div>
 
-        <!-- Profit Calculator -->
-        <div class="card profit-calculator">
-          <h3>🧮 Smart Profit Calculator</h3>
-          <p class="card-subtitle">Find the most profitable market to sell your crop</p>
+<!-- AI Smart Market Finder -->
+<div class="card" style="border:2px solid #c8e6c9;background:linear-gradient(135deg,#fff 85%,#f0f7f0)">
+<h3 style="color:#1a4d1a">🤖 AI Smart Market Finder</h3>
+<p class="card-subtitle">AI will find the best market for maximum profit</p>
+<div class="form-row">
+<div class="form-group">
+<label>🌾 Your Crop</label>
+<input type="text" id="ai-crop" placeholder="e.g., Potato, Rice, Onion" />
+</div>
+<div class="form-group">
+<label>⚖️ Quantity (kg)</label>
+<input type="number" id="ai-qty" placeholder="e.g., 500" min="1" />
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>📍 Your Location</label>
+<input type="text" id="ai-location" placeholder="e.g., Bhatpara, West Bengal" />
+</div>
+<div class="form-group">
+<label>🚛 Transport Budget (₹)</label>
+<input type="number" id="ai-budget" placeholder="e.g., 500" />
+</div>
+</div>
+<button class="btn-primary btn-full" id="ai-suggest-btn" onclick="getAISuggestion()">
+🤖 Get AI Suggestion
+</button>
+<div id="ai-result" class="hidden" style="margin-top:1rem"></div>
+</div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>🌾 Your Crop</label>
-              <select id="profit-crop">
-                <option value="">Select crop</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>⚖️ Quantity (kg)</label>
-              <input type="number" id="profit-qty" placeholder="e.g., 500" min="1" />
-            </div>
-          </div>
+<!-- Filters -->
+<div class="card">
+<div class="filter-row">
+<div class="form-group">
+<label>🌾 Crop</label>
+<select id="market-crop-filter" onchange="filterPrices()">
+<option value="">All Crops</option>
+</select>
+</div>
+<div class="form-group">
+<label>📍 State</label>
+<select id="market-state-filter" onchange="filterPrices()">
+<option value="">All States</option>
+<option value="West Bengal">West Bengal</option>
+<option value="Bihar">Bihar</option>
+<option value="Odisha">Odisha</option>
+<option value="Delhi">Delhi</option>
+<option value="Maharashtra">Maharashtra</option>
+</select>
+</div>
+</div>
+</div>
 
-          <div class="transport-costs">
-            <h4>🚛 Transport Cost to Each City</h4>
-            <div id="transport-inputs" class="transport-grid"></div>
-          </div>
+<!-- Price Table -->
+<div class="card">
+<h3>📊 Current Mandi Prices</h3>
+<div id="prices-table-container">
+<table class="prices-table" id="prices-table">
+<thead>
+<tr>
+<th>City</th>
+<th>Crop</th>
+<th>₹/kg</th>
+<th>Market</th>
+</tr>
+</thead>
+<tbody id="prices-tbody">
+<tr><td colspan="4" class="loading-row">Loading prices...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
 
-          <button class="btn-primary btn-full" onclick="calculateProfit()">
-            💡 Calculate Best Profit
-          </button>
+<!-- Profit Calculator -->
+<div class="card profit-calculator">
+<h3>🧮 Smart Profit Calculator</h3>
+<p class="card-subtitle">Find the most profitable market to sell your crop</p>
+<div class="form-row">
+<div class="form-group">
+<label>🌾 Your Crop</label>
+<select id="profit-crop">
+<option value="">Select crop</option>
+</select>
+</div>
+<div class="form-group">
+<label>⚖️ Quantity (kg)</label>
+<input type="number" id="profit-qty" placeholder="e.g., 500" min="1" />
+</div>
+</div>
+<div class="transport-costs">
+<h4>🚛 Transport Cost to Each City</h4>
+<div id="transport-inputs" class="transport-grid"></div>
+</div>
+<button class="btn-primary btn-full" onclick="calculateProfit()">
+💡 Calculate Best Profit
+</button>
+<div id="profit-result" class="hidden">
+<div id="profit-result-content"></div>
+</div>
+</div>
 
-          <div id="profit-result" class="hidden">
-            <div id="profit-result-content"></div>
-          </div>
-        </div>
-      </div>
+</div><!-- /page-market -->
 
-      <!-- ── GOVERNMENT SCHEMES PAGE ── -->
-      <div id="page-schemes" class="page hidden">
-        <div class="page-header">
-          <h2>🏛️ Government Schemes</h2>
-          <p class="page-subtitle">All central & state schemes for farmers</p>
-        </div>
+<!-- ══════════════════════════════════════
+     GOVERNMENT SCHEMES PAGE
+════════════════════════════════════════ -->
+<div id="page-schemes" class="page hidden">
+<div class="page-header">
+<h2>🏛️ Government Schemes</h2>
+<p class="page-subtitle">All central & state schemes for farmers</p>
+</div>
+<div class="card eligibility-card">
+<h3>✅ Check Your Eligibility</h3>
+<p>Enter your details to find schemes you qualify for</p>
+<div class="form-row">
+<div class="form-group">
+<label>📐 Land Size (acres)</label>
+<input type="number" id="elig-land" placeholder="e.g., 2.5" step="0.1" />
+</div>
+<div class="form-group">
+<label>📍 State</label>
+<select id="elig-state">
+<option value="West Bengal">West Bengal</option>
+<option value="Bihar">Bihar</option>
+<option value="Odisha">Odisha</option>
+<option value="Uttar Pradesh">Uttar Pradesh</option>
+<option value="Punjab">Punjab</option>
+<option value="Haryana">Haryana</option>
+<option value="Maharashtra">Maharashtra</option>
+<option value="Karnataka">Karnataka</option>
+</select>
+</div>
+<div class="form-group">
+<label>💵 Annual Income (₹)</label>
+<input type="number" id="elig-income" placeholder="e.g., 120000" />
+</div>
+</div>
+<button class="btn-primary" onclick="checkEligibility()">🔍 Check Eligibility</button>
+<div id="eligibility-result" class="hidden"></div>
+</div>
+<div class="scheme-filters">
+<div class="filter-chips" id="scheme-filter-chips">
+<button class="chip active" onclick="filterSchemes('all')">All Schemes</button>
+<button class="chip" onclick="filterSchemes('income_support')">💵 Income</button>
+<button class="chip" onclick="filterSchemes('insurance')">🛡️ Insurance</button>
+<button class="chip" onclick="filterSchemes('loan')">💳 Loan</button>
+<button class="chip" onclick="filterSchemes('subsidy')">💊 Subsidy</button>
+<button class="chip" onclick="filterSchemes('irrigation')">💧 Irrigation</button>
+<button class="chip" onclick="filterSchemes('equipment')">🚜 Equipment</button>
+</div>
+<input type="text" id="scheme-search" placeholder="🔍 Search schemes..." oninput="searchSchemes()" class="scheme-search-input" />
+</div>
+<div id="schemes-grid" class="schemes-grid">
+<div class="loading-msg">Loading schemes...</div>
+</div>
+</div>
 
-        <!-- Eligibility Checker -->
-        <div class="card eligibility-card">
-          <h3>✅ Check Your Eligibility</h3>
-          <p>Enter your details to find schemes you qualify for</p>
-          <div class="form-row">
-            <div class="form-group">
-              <label>📐 Land Size (acres)</label>
-              <input type="number" id="elig-land" placeholder="e.g., 2.5" step="0.1" />
-            </div>
-            <div class="form-group">
-              <label>📍 State</label>
-              <select id="elig-state">
-                <option value="West Bengal">West Bengal</option>
-                <option value="Bihar">Bihar</option>
-                <option value="Odisha">Odisha</option>
-                <option value="Uttar Pradesh">Uttar Pradesh</option>
-                <option value="Punjab">Punjab</option>
-                <option value="Haryana">Haryana</option>
-                <option value="Maharashtra">Maharashtra</option>
-                <option value="Karnataka">Karnataka</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>💵 Annual Income (₹)</label>
-              <input type="number" id="elig-income" placeholder="e.g., 120000" />
-            </div>
-          </div>
-          <button class="btn-primary" onclick="checkEligibility()">🔍 Check Eligibility</button>
-          <div id="eligibility-result" class="hidden"></div>
-        </div>
+<!-- ══════════════════════════════════════
+     MARKETPLACE PAGE
+════════════════════════════════════════ -->
+<div id="page-marketplace" class="page hidden">
+<div class="page-header">
+<h2>🛒 Farmer Marketplace</h2>
+<p class="page-subtitle">Buy & sell crops directly</p>
+</div>
+<div class="market-tabs">
+<button class="market-tab active" onclick="switchMarketTab('browse')">Browse Crops</button>
+<button class="market-tab" onclick="switchMarketTab('sell')">List My Crop</button>
+<button class="market-tab" onclick="switchMarketTab('myorders')">My Orders</button>
+</div>
 
-        <!-- Scheme Filters -->
-        <div class="scheme-filters">
-          <div class="filter-chips" id="scheme-filter-chips">
-            <button class="chip active" onclick="filterSchemes('all')">All Schemes</button>
-            <button class="chip" onclick="filterSchemes('income_support')">💵 Income</button>
-            <button class="chip" onclick="filterSchemes('insurance')">🛡️ Insurance</button>
-            <button class="chip" onclick="filterSchemes('loan')">💳 Loan</button>
-            <button class="chip" onclick="filterSchemes('subsidy')">💊 Subsidy</button>
-            <button class="chip" onclick="filterSchemes('irrigation')">💧 Irrigation</button>
-            <button class="chip" onclick="filterSchemes('equipment')">🚜 Equipment</button>
-          </div>
-          <input type="text" id="scheme-search" placeholder="🔍 Search schemes..." oninput="searchSchemes()" class="scheme-search-input" />
-        </div>
+<!-- Browse Tab -->
+<div id="mt-browse" class="market-tab-content active-tab">
+<div class="browse-filters">
+<input type="text" id="mp-search" placeholder="🔍 Search crops..." oninput="searchProducts()" />
+<select id="mp-district" onchange="searchProducts()">
+<option value="">All Districts</option>
+<option value="Bhatpara">Bhatpara</option>
+<option value="Durgapur">Durgapur</option>
+<option value="Asansol">Asansol</option>
+<option value="Siliguri">Siliguri</option>
+<option value="Howrah">Howrah</option>
+<option value="Kolkata">Kolkata</option>
+</select>
+</div>
+<div id="products-grid" class="products-grid">
+<div class="loading-msg">Loading marketplace...</div>
+</div>
+</div>
 
-        <!-- Schemes Grid -->
-        <div id="schemes-grid" class="schemes-grid">
-          <div class="loading-msg">Loading schemes...</div>
-        </div>
-      </div>
+<!-- Sell Tab -->
+<div id="mt-sell" class="market-tab-content hidden">
+<div class="card" style="border:2px solid #c8e6c9;background:linear-gradient(135deg,#fff 85%,#f0f7f0);margin-bottom:1.25rem">
+<h3 style="color:#1a4d1a">📸 AI Crop Price Suggester</h3>
+<p class="card-subtitle">Upload your crop photo — AI will suggest the fair price based on quality</p>
+<div id="price-upload-zone" onclick="document.getElementById('price-image').click()"
+style="border:3px dashed #2d6a2d;border-radius:14px;padding:2rem;text-align:center;cursor:pointer;background:#f0f7f0;margin-bottom:1rem">
+<div style="font-size:2.5rem">📷</div>
+<p style="color:#2d6a2d;font-weight:600;margin:.5rem 0">Click to upload crop photo</p>
+<p style="color:#6c8c6c;font-size:.85rem">Take a clear photo of your crop</p>
+<input type="file" id="price-image" accept="image/*" hidden onchange="previewPriceImage(event)" />
+</div>
+<div id="price-preview" style="display:none;text-align:center;margin-bottom:1rem">
+<img id="price-preview-img" style="max-height:200px;border-radius:12px;margin:0 auto" />
+<br/>
+<button onclick="clearPriceImage()" style="margin-top:.5rem;padding:.4rem .8rem;border:1px solid #c0392b;background:#fff;color:#c0392b;border-radius:6px;cursor:pointer">✕ Remove</button>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>🌾 Crop Name</label>
+<input type="text" id="price-crop" placeholder="e.g., Potato, Onion, Rice" />
+</div>
+<div class="form-group">
+<label>⚖️ Quantity (kg)</label>
+<input type="number" id="price-qty" placeholder="e.g., 200" />
+</div>
+</div>
+<div class="form-group">
+<label>💵 Your Suggested Price (₹/kg) — Optional</label>
+<input type="number" id="price-suggested" placeholder="What price do you want? e.g., 25" step="0.5" />
+<small style="color:#6c8c6c;font-size:.78rem">AI will tell you if your price is fair, too high or too low</small>
+</div>
+<button class="btn-primary btn-full" id="price-analyze-btn" onclick="analyzeCropPrice()">
+🤖 Analyze & Get Price Suggestion
+</button>
+<div id="price-result" style="display:none;margin-top:1rem"></div>
+</div>
 
-      <!-- ── MARKETPLACE PAGE ── -->
-      <div id="page-marketplace" class="page hidden">
-        <div class="page-header">
-          <h2>🛒 Farmer Marketplace</h2>
-          <p class="page-subtitle">Buy & sell crops directly</p>
-        </div>
+<div class="card">
+<h3>📦 List Your Crop for Sale</h3>
+<form onsubmit="listProduct(event)">
+<div class="form-row">
+<div class="form-group">
+<label>🌾 Crop Name</label>
+<input type="text" id="sell-crop" placeholder="e.g., Potato, Rice" required />
+</div>
+<div class="form-group">
+<label>⚖️ Quantity (kg)</label>
+<input type="number" id="sell-qty" placeholder="e.g., 200" min="1" required />
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>💵 Price per kg (₹)</label>
+<input type="number" id="sell-price" placeholder="e.g., 25" min="1" step="0.5" required />
+</div>
+<div class="form-group">
+<label>📍 District</label>
+<select id="sell-district">
+<option value="Bhatpara">Bhatpara</option>
+<option value="Durgapur">Durgapur</option>
+<option value="Asansol">Asansol</option>
+<option value="Siliguri">Siliguri</option>
+<option value="Howrah">Howrah</option>
+<option value="Kolkata">Kolkata</option>
+<option value="Bardhaman">Bardhaman</option>
+<option value="Midnapore">Midnapore</option>
+</select>
+</div>
+</div>
+<div class="form-group">
+<label>📝 Description (Optional)</label>
+<textarea id="sell-desc" placeholder="Quality, freshness, contact info..."></textarea>
+</div>
+<button type="submit" class="btn-primary btn-full">📢 List for Sale</button>
+</form>
+</div>
+<div id="my-listings-section">
+<h3 class="section-title">📋 My Listings</h3>
+<div id="my-listings-grid" class="products-grid"></div>
+</div>
+</div>
 
-        <!-- Tabs -->
-        <div class="market-tabs">
-          <button class="market-tab active" onclick="switchMarketTab('browse')">Browse Crops</button>
-          <button class="market-tab" onclick="switchMarketTab('sell')">List My Crop</button>
-          <button class="market-tab" onclick="switchMarketTab('myorders')">My Orders</button>
-        </div>
+<!-- My Orders Tab -->
+<div id="mt-myorders" class="market-tab-content hidden">
+<div id="my-orders-grid">
+<div class="loading-msg">Loading your orders...</div>
+</div>
+</div>
 
-        <!-- Browse Tab -->
-        <div id="mt-browse" class="market-tab-content">
-          <div class="browse-filters">
-            <input type="text" id="mp-search" placeholder="🔍 Search crops..." oninput="searchProducts()" />
-            <select id="mp-district" onchange="searchProducts()">
-              <option value="">All Districts</option>
-              <option value="Bhatpara">Bhatpara</option>
-              <option value="Durgapur">Durgapur</option>
-              <option value="Asansol">Asansol</option>
-              <option value="Siliguri">Siliguri</option>
-              <option value="Howrah">Howrah</option>
-              <option value="Kolkata">Kolkata</option>
-            </select>
-          </div>
-          <div id="products-grid" class="products-grid">
-            <div class="loading-msg">Loading marketplace...</div>
-          </div>
-        </div>
+</div><!-- /page-marketplace -->
 
-        <!-- Sell Tab -->
-        <div id="mt-sell" class="market-tab-content hidden">
+<!-- ══════════════════════════════════════
+     PROFILE PAGE
+════════════════════════════════════════ -->
+<div id="page-profile" class="page hidden">
+<div class="page-header">
+<h2>👤 My Profile</h2>
+<p class="page-subtitle">Manage your farm details</p>
+</div>
+<div class="card profile-info-card">
+<div class="profile-header">
+<div class="profile-avatar">👨‍🌾</div>
+<div>
+<h3 id="profile-name">Loading...</h3>
+<p id="profile-phone">—</p>
+<span class="role-badge" id="profile-role">Farmer</span>
+</div>
+</div>
+</div>
+<div class="card">
+<h3>🏡 Farm Details</h3>
+<form onsubmit="saveProfile(event)">
+<div class="form-row">
+<div class="form-group">
+<label>🏘️ District</label>
+<input type="text" id="p-district" placeholder="e.g., Bhatpara" />
+</div>
+<div class="form-group">
+<label>📍 State</label>
+<select id="p-state">
+<option value="West Bengal">West Bengal</option>
+<option value="Bihar">Bihar</option>
+<option value="Odisha">Odisha</option>
+<option value="Uttar Pradesh">Uttar Pradesh</option>
+<option value="Punjab">Punjab</option>
+<option value="Haryana">Haryana</option>
+<option value="Maharashtra">Maharashtra</option>
+<option value="Karnataka">Karnataka</option>
+</select>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>📐 Land Size (acres)</label>
+<input type="number" id="p-land" placeholder="e.g., 3.5" step="0.1" />
+</div>
+<div class="form-group">
+<label>🏔️ Soil Type</label>
+<select id="p-soil">
+<option value="">Select</option>
+<option value="clay">Clay</option>
+<option value="sandy">Sandy</option>
+<option value="loamy">Loamy</option>
+<option value="silt">Silt</option>
+<option value="mixed">Mixed</option>
+</select>
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>💧 Irrigation Type</label>
+<select id="p-irrigation">
+<option value="canal">Canal</option>
+<option value="borewell">Borewell</option>
+<option value="river">River</option>
+<option value="rain">Rainfed</option>
+<option value="drip">Drip</option>
+</select>
+</div>
+<div class="form-group">
+<label>💵 Annual Income (₹)</label>
+<input type="number" id="p-income" placeholder="e.g., 150000" />
+</div>
+</div>
+<button type="submit" class="btn-primary btn-full">💾 Save Profile</button>
+</form>
+</div>
 
-          <!-- Crop Price Suggestion -->
-          <div class="card" style="border:2px solid #c8e6c9;background:linear-gradient(135deg,#fff 85%,#f0f7f0);margin-bottom:1.25rem">
-            <h3 style="color:#1a4d1a">📸 AI Crop Price Suggester</h3>
-            <p class="card-subtitle">Upload your crop photo — AI will suggest the fair price based on quality</p>
-
-            <div id="price-upload-zone" onclick="document.getElementById('price-image').click()"
-              style="border:3px dashed #2d6a2d;border-radius:14px;padding:2rem;text-align:center;cursor:pointer;background:#f0f7f0;margin-bottom:1rem">
-              <div style="font-size:2.5rem">📷</div>
-              <p style="color:#2d6a2d;font-weight:600;margin:.5rem 0">Click to upload crop photo</p>
-              <p style="color:#6c8c6c;font-size:.85rem">Take a clear photo of your crop</p>
-              <input type="file" id="price-image" accept="image/*" hidden onchange="previewPriceImage(event)" />
-            </div>
-
-            <div id="price-preview" style="display:none;text-align:center;margin-bottom:1rem">
-              <img id="price-preview-img" style="max-height:200px;border-radius:12px;margin:0 auto" />
-              <br/>
-              <button onclick="clearPriceImage()" style="margin-top:.5rem;padding:.4rem .8rem;border:1px solid #c0392b;background:#fff;color:#c0392b;border-radius:6px;cursor:pointer">✕ Remove</button>
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label>🌾 Crop Name</label>
-                <input type="text" id="price-crop" placeholder="e.g., Potato, Onion, Rice" />
-              </div>
-              <div class="form-group">
-                <label>⚖️ Quantity (kg)</label>
-                <input type="number" id="price-qty" placeholder="e.g., 200" />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>💵 Your Suggested Price (₹/kg) — Optional</label>
-              <input type="number" id="price-suggested" placeholder="What price do you want? e.g., 25" step="0.5" />
-              <small style="color:#6c8c6c;font-size:.78rem">AI will tell you if your price is fair, too high or too low</small>
-            </div>
-
-            <button class="btn-primary btn-full" id="price-analyze-btn" onclick="analyzeCropPrice()">
-              🤖 Analyze & Get Price Suggestion
-            </button>
-
-            <div id="price-result" style="display:none;margin-top:1rem"></div>
-          </div>
-
-          <div class="card">
-            <h3>📦 List Your Crop for Sale</h3>
-            <form onsubmit="listProduct(event)">
-              <div class="form-row">
-                <div class="form-group">
-                  <label>🌾 Crop Name</label>
-                  <input type="text" id="sell-crop" placeholder="e.g., Potato, Rice" required />
-                </div>
-                <div class="form-group">
-                  <label>⚖️ Quantity (kg)</label>
-                  <input type="number" id="sell-qty" placeholder="e.g., 200" min="1" required />
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>💵 Price per kg (₹)</label>
-                  <input type="number" id="sell-price" placeholder="e.g., 25" min="1" step="0.5" required />
-                </div>
-                <div class="form-group">
-                  <label>📍 District</label>
-                  <select id="sell-district">
-                    <option value="Bhatpara">Bhatpara</option>
-                    <option value="Durgapur">Durgapur</option>
-                    <option value="Asansol">Asansol</option>
-                    <option value="Siliguri">Siliguri</option>
-                    <option value="Howrah">Howrah</option>
-                    <option value="Kolkata">Kolkata</option>
-                    <option value="Bardhaman">Bardhaman</option>
-                    <option value="Midnapore">Midnapore</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-group">
-                <label>📝 Description (Optional)</label>
-                <textarea id="sell-desc" placeholder="Quality, freshness, contact info..."></textarea>
-              </div>
-              <button type="submit" class="btn-primary btn-full">📢 List for Sale</button>
-            </form>
-          </div>
-          <div id="my-listings-section">
-            <h3 class="section-title">📋 My Listings</h3>
-            <div id="my-listings-grid" class="products-grid"></div>
-          </div>
-        </div>
-
-        <!-- My Orders Tab -->
-        <div id="mt-myorders" class="market-tab-content hidden">
-          <div id="my-orders-grid">
-            <div class="loading-msg">Loading your orders...</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── PROFILE PAGE ── -->
-      <div id="page-profile" class="page hidden">
-        <div class="page-header">
-          <h2>👤 My Profile</h2>
-          <p class="page-subtitle">Manage your farm details</p>
-        </div>
-
-        <div class="card profile-info-card">
-          <div class="profile-header">
-            <div class="profile-avatar">👨‍🌾</div>
-            <div>
-              <h3 id="profile-name">Loading...</h3>
-              <p id="profile-phone">—</p>
-              <span class="role-badge" id="profile-role">Farmer</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h3>🏡 Farm Details</h3>
-          <form onsubmit="saveProfile(event)">
-            <div class="form-row">
-              <div class="form-group">
-                <label>🏘️ District</label>
-                <input type="text" id="p-district" placeholder="e.g., Bhatpara" />
-              </div>
-              <div class="form-group">
-                <label>📍 State</label>
-                <select id="p-state">
-                  <option value="West Bengal">West Bengal</option>
-                  <option value="Bihar">Bihar</option>
-                  <option value="Odisha">Odisha</option>
-                  <option value="Uttar Pradesh">Uttar Pradesh</option>
-                  <option value="Punjab">Punjab</option>
-                  <option value="Haryana">Haryana</option>
-                  <option value="Maharashtra">Maharashtra</option>
-                  <option value="Karnataka">Karnataka</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>📐 Land Size (acres)</label>
-                <input type="number" id="p-land" placeholder="e.g., 3.5" step="0.1" />
-              </div>
-              <div class="form-group">
-                <label>🏔️ Soil Type</label>
-                <select id="p-soil">
-                  <option value="">Select</option>
-                  <option value="clay">Clay</option>
-                  <option value="sandy">Sandy</option>
-                  <option value="loamy">Loamy</option>
-                  <option value="silt">Silt</option>
-                  <option value="mixed">Mixed</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>💧 Irrigation Type</label>
-                <select id="p-irrigation">
-                  <option value="canal">Canal</option>
-                  <option value="borewell">Borewell</option>
-                  <option value="river">River</option>
-                  <option value="rain">Rainfed</option>
-                  <option value="drip">Drip</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>💵 Annual Income (₹)</label>
-                <input type="number" id="p-income" placeholder="e.g., 150000" />
-              </div>
-            </div>
-            <button type="submit" class="btn-primary btn-full">💾 Save Profile</button>
-          </form>
-        </div>
-      </div>
-
-      <!-- Buyer Price Update (only for buyers) -->
+<!-- Buyer Price Update — only for buyers -->
 <div class="card" id="buyer-price-section" style="display:none;border:2px solid #e67e22">
-  <h3 style="color:#e67e22">💼 Update Your Buying Prices</h3>
-  <p class="card-subtitle">Farmers will see your prices and contact you directly</p>
-
-  <div class="form-row">
-    <div class="form-group">
-      <label>🌾 Crop Name</label>
-      <input type="text" id="bp-crop" placeholder="e.g., Potato, Onion" />
-    </div>
-    <div class="form-group">
-      <label>💰 Your Buying Price (₹/kg)</label>
-      <input type="number" id="bp-price" placeholder="e.g., 18" step="0.5" />
-    </div>
-  </div>
-  <div class="form-row">
-    <div class="form-group">
-      <label>⚖️ Min Quantity (kg)</label>
-      <input type="number" id="bp-min-qty" placeholder="e.g., 100" />
-    </div>
-    <div class="form-group">
-      <label>⚖️ Max Quantity (kg)</label>
-      <input type="number" id="bp-max-qty" placeholder="e.g., 5000" />
-    </div>
-  </div>
-  <button class="btn-orange btn-full" onclick="updateBuyerPrice()">
-    📢 Update My Buying Price
-  </button>
-  <div id="bp-result" style="margin-top:.75rem"></div>
-
-  <div style="margin-top:1rem">
-    <h4>My Active Prices:</h4>
-    <div id="my-buyer-prices"></div>
-  </div>
+<h3 style="color:#e67e22">💼 Update Your Buying Prices</h3>
+<p class="card-subtitle">Farmers will see your prices and contact you directly</p>
+<div class="form-row">
+<div class="form-group">
+<label>🌾 Crop Name</label>
+<input type="text" id="bp-crop" placeholder="e.g., Potato, Onion" />
+</div>
+<div class="form-group">
+<label>💰 Your Buying Price (₹/kg)</label>
+<input type="number" id="bp-price" placeholder="e.g., 18" step="0.5" />
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>⚖️ Min Quantity (kg)</label>
+<input type="number" id="bp-min-qty" placeholder="e.g., 100" />
+</div>
+<div class="form-group">
+<label>⚖️ Max Quantity (kg)</label>
+<input type="number" id="bp-max-qty" placeholder="e.g., 5000" />
+</div>
+</div>
+<button class="btn-orange btn-full" onclick="updateBuyerPrice()">
+📢 Update My Buying Price
+</button>
+<div id="bp-result" style="margin-top:.75rem"></div>
+<div style="margin-top:1rem">
+<h4>My Active Prices:</h4>
+<div id="my-buyer-prices"></div>
+</div>
 </div>
 
+</div><!-- /page-profile -->
 
-    </main><!-- /main-content -->
-  </div><!-- /main-screen -->
-
+</main>
+</div><!-- /main-screen -->
 </div><!-- /app -->
 
-<!-- ── ORDER MODAL ── -->
+<!-- ORDER MODAL -->
 <div id="order-modal" class="modal hidden">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>📦 Place Order</h3>
-      <button onclick="closeModal('order-modal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="order-product-info"></div>
-      <form onsubmit="submitOrder(event)">
-        <div class="form-group">
-          <label>⚖️ Quantity (kg)</label>
-          <input type="number" id="order-qty" placeholder="How many kg?" min="1" required />
-        </div>
-        <div class="form-group">
-          <label>👤 Buyer Name</label>
-          <input type="text" id="order-buyer-name" placeholder="Your name" required />
-        </div>
-        <div class="form-group">
-          <label>📱 Phone</label>
-          <input type="tel" id="order-phone" placeholder="Mobile number" required />
-        </div>
-        <div class="form-group">
-          <label>🏠 Delivery Address</label>
-          <textarea id="order-address" placeholder="Full delivery address" required></textarea>
-        </div>
-        <input type="hidden" id="order-product-id" />
-        <button type="submit" class="btn-primary btn-full">✅ Confirm Order</button>
-      </form>
-    </div>
-  </div>
+<div class="modal-content">
+<div class="modal-header">
+<h3>📦 Place Order</h3>
+<button onclick="closeModal('order-modal')">✕</button>
+</div>
+<div class="modal-body">
+<div id="order-product-info"></div>
+<form onsubmit="submitOrder(event)">
+<div class="form-group">
+<label>⚖️ Quantity (kg)</label>
+<input type="number" id="order-qty" placeholder="How many kg?" min="1" required />
+</div>
+<div class="form-group">
+<label>👤 Buyer Name</label>
+<input type="text" id="order-buyer-name" placeholder="Your name" required />
+</div>
+<div class="form-group">
+<label>📱 Phone</label>
+<input type="tel" id="order-phone" placeholder="Mobile number" required />
+</div>
+<div class="form-group">
+<label>🏠 Delivery Address</label>
+<textarea id="order-address" placeholder="Full delivery address" required></textarea>
+</div>
+<input type="hidden" id="order-product-id" />
+<button type="submit" class="btn-primary btn-full">✅ Confirm Order</button>
+</form>
+</div>
+</div>
 </div>
 
-<!-- ── VOICE ASSISTANT ── -->
+<!-- VOICE ASSISTANT -->
 <div id="voice-panel" class="voice-panel hidden">
-  <div class="voice-header">
-    <h3>🎤 Voice Assistant</h3>
-    <button onclick="toggleVoiceAssistant()">✕</button>
-  </div>
-  <div class="voice-lang-toggle">
-    <button class="lang-btn active" onclick="setVoiceLang('en-IN')">English</button>
-    <button class="lang-btn" onclick="setVoiceLang('hi-IN')">हिंदी</button>
-  </div>
-  <div id="voice-transcript" class="voice-transcript">
-    <p class="voice-hint">Press the mic button and speak your question</p>
-  </div>
-  <div id="voice-response" class="voice-response hidden"></div>
-  <button id="mic-btn" class="mic-button" onclick="toggleListening()">
-    <span class="mic-icon">🎤</span>
-    <span class="mic-label">Tap to Speak</span>
-  </button>
-  <div class="voice-examples">
-    <p>Try saying:</p>
-    <div class="example-chips">
-      <span onclick="sendVoiceText(this.textContent)">"Onion price today"</span>
-      <span onclick="sendVoiceText(this.textContent)">"PM-KISAN scheme"</span>
-      <span onclick="sendVoiceText(this.textContent)">"Best crop for loamy soil"</span>
-    </div>
-  </div>
+<div class="voice-header">
+<h3>🎤 Voice Assistant</h3>
+<button onclick="toggleVoiceAssistant()">✕</button>
+</div>
+<div class="voice-lang-toggle">
+<button class="lang-btn active" onclick="setVoiceLang('en-IN')">English</button>
+<button class="lang-btn" onclick="setVoiceLang('hi-IN')">हिंदी</button>
+</div>
+<div id="voice-transcript" class="voice-transcript">
+<p class="voice-hint">Press the mic button and speak your question</p>
+</div>
+<div id="voice-response" class="voice-response hidden"></div>
+<button id="mic-btn" class="mic-button" onclick="toggleListening()">
+<span class="mic-icon">🎤</span>
+<span class="mic-label">Tap to Speak</span>
+</button>
+<div class="voice-examples">
+<p>Try saying:</p>
+<div class="example-chips">
+<span onclick="sendVoiceText(this.textContent)">"Onion price today"</span>
+<span onclick="sendVoiceText(this.textContent)">"PM-KISAN scheme"</span>
+<span onclick="sendVoiceText(this.textContent)">"Best crop for loamy soil"</span>
+</div>
+</div>
 </div>
 
-<!-- Floating Voice Button -->
 <button class="floating-mic" onclick="toggleVoiceAssistant()" title="Voice Assistant">🎤</button>
-
-<!-- Toast notification -->
 <div id="toast" class="toast hidden"></div>
 
 <script src="js/api.js"></script>

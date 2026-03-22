@@ -215,7 +215,7 @@ async function getSmartSellSuggestion() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ crop_name: crop, quantity: qty, farmer_city: city })
+      body: JSON.stringify({ crop_name: crop, quantity: qty, farmer_location: city })
     });
 
     const data = await res.json();

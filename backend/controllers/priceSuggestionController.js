@@ -1,49 +1,8 @@
+const Groq = require('groq-sdk');
 const pool = require('../config/database');
 const fs = require('fs');
 
-// Rule-based quality grading without AI
-function analyzeQualityByRules(crop, userSuggestedPrice, marketAvg) {
-  const cropLower = crop.toLowerCase();
-
-  const qualityGuide = {
-    potato: {
-      gradeA: { desc: 'Large uniform potatoes, smooth skin, no damage', premium: 1.2 },
-      gradeB: { desc: 'Medium sized, minor blemishes, good quality', premium: 1.0 },
-      gradeC: { desc: 'Small or irregular, some damage visible', premium: 0.8 },
-      gradeD: { desc: 'Damaged, sprouted or diseased potatoes', premium: 0.6 }
-    },
-    onion: {
-      gradeA: { desc: 'Dry, firm, uniform large onions, no damage', premium: 1.25 },
-      gradeB: { desc: 'Medium sized, properly dried, minor issues', premium: 1.0 },
-      gradeC: { desc: 'Small size, some wet onions mixed', premium: 0.75 },
-      gradeD: { desc: 'Wet, rotting or damaged onions', premium: 0.5 }
-    },
-    tomato: {
-      gradeA: { desc: 'Red ripe, firm, uniform, no cracks or damage', premium: 1.3 },
-      gradeB: { desc: 'Slightly uneven ripeness, minor blemishes', premium: 1.0 },
-      gradeC: { desc: 'Overripe, some cracks or soft spots', premium: 0.7 },
-      gradeD: { desc: 'Damaged, diseased or overripe tomatoes', premium: 0.4 }
-    },
-    default: {
-      gradeA: { desc: 'Excellent quality, uniform, no damage', premium: 1.2 },
-      gradeB: { desc: 'Good quality, minor imperfections', premium: 1.0 },
-      gradeC: { desc: 'Average quality, some issues visible', premium: 0.8 },
-      gradeD: { desc: 'Poor quality, significant damage', premium: 0.6 }
-    }
-  };
-
-  const guide = qualityGuide[cropLower] || qualityGuide.default;
-
-  // Since we can't analyze image without API, assume Grade B as default
-  // and give price range for all grades
-  return {
-    assumed_grade: 'B',
-    quality_score: 7,
-    quality_description: `Based on market standards for ${crop}. Upload a clearer photo for better analysis.`,
-    grades: guide,
-    market_avg: marketAvg
-  };
-}
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const suggestPrice = async (req, res) => {
   try {
@@ -53,14 +12,16 @@ const suggestPrice = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Crop name is required' });
     }
 
-    // Clean up uploaded file
+    // Cleanup file
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
 
-    // Get market prices
+    const qty = parseFloat(quantity) || 0;
+
+    // Get market prices from DB
     const marketResult = await pool.query(
-      'SELECT city, price_per_kg, state, market_name FROM market_prices WHERE LOWER(crop_name) = LOWER($1) ORDER BY price_per_kg DESC',
+      'SELECT city, price_per_kg, state FROM market_prices WHERE LOWER(crop_name) = LOWER($1) ORDER BY price_per_kg DESC',
       [crop_name]
     );
 
@@ -72,87 +33,136 @@ const suggestPrice = async (req, res) => {
     }
 
     const prices = marketResult.rows.map(r => parseFloat(r.price_per_kg));
-    const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const avgPrice = (prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(2);
     const maxPrice = Math.max(...prices);
     const minPrice = Math.min(...prices);
+    const marketSummary = marketResult.rows.slice(0, 6)
+      .map(m => `${m.city}: ₹${m.price_per_kg}/kg`).join(', ');
 
-    const qualityData = analyzeQualityByRules(crop_name, user_suggested_price, avgPrice);
+    // Ask Groq AI for price suggestion
+    const prompt = `You are an expert agricultural price advisor for Indian farmers.
 
-    // Calculate price for each grade
-    const gradePrices = {
-      A: (avgPrice * qualityData.grades.gradeA.premium).toFixed(2),
-      B: (avgPrice * qualityData.grades.gradeB.premium).toFixed(2),
-      C: (avgPrice * qualityData.grades.gradeC.premium).toFixed(2),
-      D: (avgPrice * qualityData.grades.gradeD.premium).toFixed(2),
-    };
+Crop: ${crop_name}
+Quantity: ${qty} kg
+Farmer's suggested price: ₹${user_suggested_price || 'not specified'}/kg
+Current mandi prices: ${marketSummary}
+Average price: ₹${avgPrice}/kg
+Highest price: ₹${maxPrice}/kg
+Lowest price: ₹${minPrice}/kg
 
-    // Fair price = Grade B = market average
-    const fairPrice = parseFloat(gradePrices.B);
-    const minSuggested = parseFloat(gradePrices.C);
-    const maxSuggested = parseFloat(gradePrices.A);
+Based on this real market data, analyze and suggest fair prices for different quality grades.
+
+Respond ONLY in this exact JSON format, no extra text:
+{
+  "grade": "B",
+  "quality_score": 7,
+  "quality_description": "Good quality ${crop_name} based on current market standards",
+  "min_price": ${Math.round(minPrice)},
+  "max_price": ${Math.round(maxPrice)},
+  "fair_price": ${Math.round(parseFloat(avgPrice))},
+  "grade_a_price": ${Math.round(maxPrice * 1.15)},
+  "grade_b_price": ${Math.round(parseFloat(avgPrice))},
+  "grade_c_price": ${Math.round(parseFloat(avgPrice) * 0.8)},
+  "grade_d_price": ${Math.round(parseFloat(avgPrice) * 0.6)},
+  "farmer_feedback_status": "fair",
+  "farmer_feedback": "Your price is fair based on current market",
+  "negotiation_tip": "Sort and grade your crop before selling for 15-20% better price",
+  "best_market": "${marketResult.rows[0].city}",
+  "total_value": ${Math.round(parseFloat(avgPrice) * qty)}
+}`;
+
+    const response = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 500,
+      temperature: 0.2
+    });
+
+    const responseText = response.choices[0].message.content;
+    console.log('Groq Price Response:', responseText);
+
+    let priceData;
+    try {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON');
+      priceData = JSON.parse(jsonMatch[0]);
+    } catch (e) {
+      priceData = {
+        grade: 'B',
+        quality_score: 7,
+        quality_description: `Good quality ${crop_name}`,
+        min_price: Math.round(minPrice),
+        max_price: Math.round(maxPrice),
+        fair_price: Math.round(parseFloat(avgPrice)),
+        grade_a_price: Math.round(maxPrice * 1.15),
+        grade_b_price: Math.round(parseFloat(avgPrice)),
+        grade_c_price: Math.round(parseFloat(avgPrice) * 0.8),
+        grade_d_price: Math.round(parseFloat(avgPrice) * 0.6),
+        farmer_feedback_status: 'fair',
+        farmer_feedback: `Fair price for ${crop_name} is ₹${avgPrice}/kg`,
+        negotiation_tip: 'Sort and grade your crop before selling',
+        best_market: marketResult.rows[0].city,
+        total_value: Math.round(parseFloat(avgPrice) * qty)
+      };
+    }
 
     // Farmer price feedback
     let farmerPriceFeedback = null;
     if (user_suggested_price) {
-      const suggestedNum = parseFloat(user_suggested_price);
-      if (suggestedNum < minSuggested) {
+      const suggested = parseFloat(user_suggested_price);
+      if (suggested < priceData.grade_c_price) {
         farmerPriceFeedback = {
           status: 'too_low',
-          message: `⚠️ Your price ₹${user_suggested_price}/kg is TOO LOW! You can get ₹${fairPrice}/kg for average quality.`,
-          icon: '⚠️'
+          message: `⚠️ Your price ₹${user_suggested_price}/kg is TOO LOW! Fair price is ₹${priceData.fair_price}/kg. You can earn more!`
         };
-      } else if (suggestedNum > maxSuggested * 1.15) {
+      } else if (suggested > priceData.grade_a_price * 1.2) {
         farmerPriceFeedback = {
           status: 'too_high',
-          message: `📉 Your price ₹${user_suggested_price}/kg may be TOO HIGH. Best market rate is ₹${maxPrice}/kg. Try ₹${maxSuggested}/kg.`,
-          icon: '📉'
+          message: `📉 Your price ₹${user_suggested_price}/kg is TOO HIGH. Best market rate is ₹${priceData.max_price}/kg.`
         };
       } else {
         farmerPriceFeedback = {
           status: 'fair',
-          message: `✅ Your price ₹${user_suggested_price}/kg is FAIR based on current market!`,
-          icon: '✅'
+          message: `✅ Your price ₹${user_suggested_price}/kg is FAIR based on current market!`
         };
       }
     }
-
-    const qty = parseFloat(quantity) || 0;
 
     res.json({
       success: true,
       crop_name,
       quantity: qty,
       analysis: {
-        grade: 'B',
-        quality_score: 7,
-        quality_description: qualityData.quality_description,
-        quality_issues: 'Upload crop photo for detailed quality analysis',
+        grade: priceData.grade,
+        quality_score: priceData.quality_score,
+        quality_description: priceData.quality_description,
+        quality_issues: 'Upload crop photo for visual quality analysis',
         premium_factors: `Fresh ${crop_name} with good market demand`
       },
       price_suggestion: {
-        min_price: minSuggested,
-        max_price: maxSuggested,
-        fair_price: fairPrice,
-        price_range: `₹${minSuggested} - ₹${maxSuggested} per kg`,
-        recommended: `₹${fairPrice} per kg`
+        min_price: priceData.min_price,
+        max_price: priceData.max_price,
+        fair_price: priceData.fair_price,
+        price_range: `₹${priceData.min_price} - ₹${priceData.max_price} per kg`,
+        recommended: `₹${priceData.fair_price} per kg`
       },
       grade_wise_prices: {
-        'Grade A (Excellent)': `₹${gradePrices.A}/kg — ${qualityData.grades.gradeA.desc}`,
-        'Grade B (Good)': `₹${gradePrices.B}/kg — ${qualityData.grades.gradeB.desc}`,
-        'Grade C (Average)': `₹${gradePrices.C}/kg — ${qualityData.grades.gradeC.desc}`,
-        'Grade D (Poor)': `₹${gradePrices.D}/kg — ${qualityData.grades.gradeD.desc}`,
+        'Grade A (Excellent)': `₹${priceData.grade_a_price}/kg`,
+        'Grade B (Good)': `₹${priceData.grade_b_price}/kg`,
+        'Grade C (Average)': `₹${priceData.grade_c_price}/kg`,
+        'Grade D (Poor)': `₹${priceData.grade_d_price}/kg`
       },
       market_data: {
-        average_market_price: avgPrice.toFixed(2),
+        average_market_price: avgPrice,
         highest_market_price: maxPrice,
         lowest_market_price: minPrice,
-        best_market: marketResult.rows[0].city,
+        best_market: priceData.best_market,
         markets: marketResult.rows.slice(0, 6)
       },
       farmer_price_feedback: farmerPriceFeedback,
-      total_value: qty > 0 ? `₹${(fairPrice * qty).toLocaleString('en-IN')}` : null,
-      negotiation_tip: `Sort your ${crop_name} by size and quality before selling. Grade A quality can get ₹${gradePrices.A}/kg vs ₹${gradePrices.C}/kg for mixed quality.`,
-      powered_by: 'AgriMind Price Engine',
+      total_value: qty > 0 ? `₹${priceData.total_value.toLocaleString('en-IN')}` : null,
+      negotiation_tip: priceData.negotiation_tip,
+      powered_by: 'Groq AI (Llama 3.3)',
       timestamp: new Date().toISOString()
     });
 
@@ -161,10 +171,7 @@ const suggestPrice = async (req, res) => {
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
-    res.status(500).json({
-      success: false,
-      message: 'Error analyzing crop: ' + err.message
-    });
+    res.status(500).json({ success: false, message: 'Error: ' + err.message });
   }
 };
 

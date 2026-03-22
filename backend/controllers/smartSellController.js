@@ -3,26 +3,8 @@ const pool = require('../config/database');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Calculate distance between two cities (km)
-function getDistance(city1, city2) {
-  const distances = {
-    'Kolkata-Howrah': 10, 'Kolkata-Durgapur': 170, 'Kolkata-Asansol': 200,
-    'Kolkata-Siliguri': 570, 'Kolkata-Bhubaneswar': 440, 'Kolkata-Patna': 580,
-    'Kolkata-Delhi': 1470, 'Kolkata-Mumbai': 1980,
-    'Howrah-Durgapur': 160, 'Howrah-Asansol': 195,
-    'Durgapur-Asansol': 35, 'Durgapur-Siliguri': 410,
-    'Bhatpara-Kolkata': 35, 'Bhatpara-Howrah': 40,
-    'Bardhaman-Kolkata': 105, 'Bardhaman-Durgapur': 65,
-    'Midnapore-Kolkata': 115, 'Midnapore-Howrah': 110,
-  };
-
-  const key1 = `${city1}-${city2}`;
-  const key2 = `${city2}-${city1}`;
-  return distances[key1] || distances[key2] || 200;
-}
-
 // Calculate transport cost based on quantity and distance
-function calculateTransport(quantity, distance) {
+function calculateTransport(quantity, distanceKm) {
   let vehicleType, costPerKm, loadingCost;
 
   if (quantity <= 50) {
@@ -47,30 +29,35 @@ function calculateTransport(quantity, distance) {
     loadingCost = 600;
   }
 
-  const transportCost = Math.round((distance * costPerKm) + loadingCost);
-  return { vehicleType, transportCost, distance, costPerKm, loadingCost };
+  const transportCost = Math.round((distanceKm * costPerKm) + loadingCost);
+  return { vehicleType, transportCost, distanceKm, costPerKm, loadingCost };
 }
 
 const getSmartSellSuggestion = async (req, res) => {
   try {
-    const { crop_name, quantity, farmer_city, farmer_district } = req.body;
-    const userId = req.user?.userId;
+    const { crop_name, quantity, farmer_location } = req.body;
 
-    if (!crop_name || !quantity) {
+    if (!crop_name || !quantity || !farmer_location) {
       return res.status(400).json({
         success: false,
-        message: 'Crop name and quantity are required'
+        message: 'Crop name, quantity and your location are required'
       });
     }
 
     const qty = parseFloat(quantity);
-    const farmerCity = farmer_city || farmer_district || 'Kolkata';
 
-    // Get all active buyer prices for this crop
+    // Get all mandi prices from database
+    const mandiResult = await pool.query(`
+      SELECT city, state, price_per_kg, market_name
+      FROM market_prices
+      WHERE LOWER(crop_name) = LOWER($1)
+      ORDER BY price_per_kg DESC
+    `, [crop_name]);
+
+    // Get all buyer prices from database
     const buyerResult = await pool.query(`
       SELECT 
-        bp.id, bp.price_per_kg, bp.min_quantity, bp.max_quantity,
-        bp.date_updated, bp.crop_name,
+        bp.price_per_kg, bp.min_quantity, bp.max_quantity, bp.crop_name,
         b.company_name, b.city, b.district, b.state, b.phone,
         u.name as buyer_name, u.phone as buyer_phone
       FROM buyer_prices bp
@@ -82,119 +69,162 @@ const getSmartSellSuggestion = async (req, res) => {
       ORDER BY bp.price_per_kg DESC
     `, [crop_name]);
 
-    // Also get mandi prices as fallback
-    const mandiResult = await pool.query(`
-      SELECT city, state, price_per_kg, market_name
-      FROM market_prices
-      WHERE LOWER(crop_name) = LOWER($1)
-      ORDER BY price_per_kg DESC
-    `, [crop_name]);
+    if (mandiResult.rows.length === 0 && buyerResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `No market data found for ${crop_name}`
+      });
+    }
 
-    // Combine buyers and mandi data
-    const allOptions = [];
+    // Build all destinations list for AI
+    const allDestinations = [];
 
-    // Add real buyers
-    buyerResult.rows.forEach(buyer => {
-      const distance = getDistance(farmerCity, buyer.city);
-      const transport = calculateTransport(qty, distance);
-      const totalRevenue = buyer.price_per_kg * qty;
-      const netProfit = totalRevenue - transport.transportCost;
-
-      // Check quantity requirements
-      const meetsMinQty = !buyer.min_quantity || qty >= buyer.min_quantity;
-      const meetsMaxQty = !buyer.max_quantity || qty <= buyer.max_quantity;
-
-      allOptions.push({
-        type: 'buyer',
-        name: buyer.company_name || buyer.buyer_name,
-        city: buyer.city,
-        state: buyer.state,
-        phone: buyer.phone || buyer.buyer_phone,
-        price_per_kg: parseFloat(buyer.price_per_kg),
-        total_revenue: totalRevenue,
-        transport: transport,
-        net_profit: netProfit,
-        is_profitable: netProfit > 0,
-        meets_quantity: meetsMinQty && meetsMaxQty,
-        min_quantity: buyer.min_quantity,
-        max_quantity: buyer.max_quantity,
-        price_updated: buyer.date_updated,
-        badge: '🏪 Direct Buyer'
+    mandiResult.rows.forEach(m => {
+      allDestinations.push({
+        name: m.market_name || `${m.city} Mandi`,
+        city: m.city,
+        state: m.state,
+        price_per_kg: parseFloat(m.price_per_kg),
+        type: 'mandi',
+        phone: '1800-270-0224'
       });
     });
 
-    // Add mandi options
-    mandiResult.rows.forEach(mandi => {
-      const distance = getDistance(farmerCity, mandi.city);
-      const transport = calculateTransport(qty, distance);
-      const totalRevenue = mandi.price_per_kg * qty;
+    buyerResult.rows.forEach(b => {
+      allDestinations.push({
+        name: b.company_name || b.buyer_name,
+        city: b.city,
+        state: b.state,
+        price_per_kg: parseFloat(b.price_per_kg),
+        type: 'buyer',
+        phone: b.phone || b.buyer_phone,
+        min_qty: b.min_quantity,
+        max_qty: b.max_quantity
+      });
+    });
+
+    // Ask Groq AI to calculate distances
+    const destinationList = allDestinations.map((d, i) =>
+      `${i + 1}. ${d.city} (${d.state})`
+    ).join('\n');
+
+    const distancePrompt = `You are a geography expert for Indian cities.
+
+The farmer is located at: "${farmer_location}" (this could be a village, town, or district in India)
+
+Calculate the approximate road distance in kilometers from "${farmer_location}" to each of these cities:
+
+${destinationList}
+
+Respond ONLY in this exact JSON format, no other text:
+{
+  "farmer_location_identified": "corrected/full name of farmer location",
+  "distances": [
+    {"index": 1, "city": "city name", "distance_km": 45},
+    {"index": 2, "city": "city name", "distance_km": 170}
+  ]
+}
+
+Use realistic road distances, not straight-line. If unsure, give a reasonable estimate.`;
+
+    let distances = [];
+    let farmerLocationName = farmer_location;
+
+    try {
+      const distanceResponse = await groq.chat.completions.create({
+        messages: [{ role: 'user', content: distancePrompt }],
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 800,
+        temperature: 0.1
+      });
+
+      const distanceText = distanceResponse.choices[0].message.content;
+      console.log('Groq Distance Response:', distanceText);
+
+      const jsonMatch = distanceText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        distances = parsed.distances || [];
+        farmerLocationName = parsed.farmer_location_identified || farmer_location;
+      }
+    } catch (distErr) {
+      console.error('Distance calculation error:', distErr.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Could not calculate distances. Try again.'
+      });
+    }
+
+    // Match distances with destinations and calculate profit
+    const allOptions = allDestinations.map((dest, i) => {
+      const distData = distances.find(d => d.index === i + 1);
+      const distanceKm = distData?.distance_km || 200;
+
+      const transport = calculateTransport(qty, distanceKm);
+      const totalRevenue = dest.price_per_kg * qty;
       const netProfit = totalRevenue - transport.transportCost;
 
-      allOptions.push({
-        type: 'mandi',
-        name: mandi.market_name || `${mandi.city} Mandi`,
-        city: mandi.city,
-        state: mandi.state,
-        phone: '1800-270-0224',
-        price_per_kg: parseFloat(mandi.price_per_kg),
+      return {
+        ...dest,
+        distance_km: distanceKm,
+        transport,
         total_revenue: totalRevenue,
-        transport: transport,
         net_profit: netProfit,
         is_profitable: netProfit > 0,
-        meets_quantity: true,
-        price_updated: new Date().toISOString().split('T')[0],
-        badge: '🏛️ Mandi'
-      });
+        badge: dest.type === 'buyer' ? '🏪 Direct Buyer' : '🏛️ Mandi',
+        profit_formula: `₹${dest.price_per_kg} × ${qty}kg - ₹${transport.transportCost} = ₹${netProfit}`
+      };
     });
 
     // Sort by net profit
     allOptions.sort((a, b) => b.net_profit - a.net_profit);
-
     const bestOption = allOptions[0];
-    const profitableOptions = allOptions.filter(o => o.is_profitable);
 
-    // Ask Groq AI for smart advice
-    const topOptions = allOptions.slice(0, 4).map(o =>
-      `${o.name} (${o.city}): Price=₹${o.price_per_kg}/kg, Transport=${o.transport.vehicleType} ₹${o.transport.transportCost}, Net Profit=₹${o.net_profit}`
+    // Ask Groq for final advice
+    const topSummary = allOptions.slice(0, 4).map(o =>
+      `${o.name} (${o.city}, ${o.distance_km}km): ₹${o.price_per_kg}/kg, ${o.transport.vehicleType}, transport=₹${o.transport.transportCost}, profit=₹${o.net_profit}`
     ).join('\n');
 
     let aiAdvice = '';
     try {
-      const response = await groq.chat.completions.create({
+      const adviceResponse = await groq.chat.completions.create({
         messages: [{
           role: 'user',
-          content: `Indian farmer wants to sell ${qty}kg of ${crop_name} from ${farmerCity}.
+          content: `Indian farmer from ${farmerLocationName} wants to sell ${qty}kg of ${crop_name}.
 
-Top options:
-${topOptions}
+Top market options with distances calculated:
+${topSummary}
 
-Give 3 lines of practical advice: which option is best and why, best time to sell, one negotiation tip. Be specific with numbers.`
+Give practical advice in 3 short points:
+1. Which market is best and exact reason with numbers
+2. Best time of day to sell ${crop_name}
+3. One negotiation tip to get better price`
         }],
         model: 'llama-3.3-70b-versatile',
-        max_tokens: 200,
+        max_tokens: 250,
         temperature: 0.3
       });
-      aiAdvice = response.choices[0].message.content;
-    } catch (aiErr) {
-      console.log('Groq advice skipped:', aiErr.message);
-      aiAdvice = `Best option: Sell to ${bestOption?.name} in ${bestOption?.city} for maximum profit of ₹${bestOption?.net_profit?.toLocaleString('en-IN')}.`;
+      aiAdvice = adviceResponse.choices[0].message.content;
+    } catch (advErr) {
+      aiAdvice = `Best option: Sell at ${bestOption.name} in ${bestOption.city} (${bestOption.distance_km}km away). Net profit: ₹${bestOption.net_profit.toLocaleString('en-IN')}.`;
     }
 
     res.json({
       success: true,
       crop: crop_name,
       quantity: qty,
-      farmer_location: farmerCity,
+      farmer_location: farmerLocationName,
       best_option: bestOption,
-      all_options: allOptions.slice(0, 8),
-      profitable_count: profitableOptions.length,
+      all_options: allOptions,
+      profitable_count: allOptions.filter(o => o.is_profitable).length,
       ai_advice: aiAdvice,
       summary: {
         total_options: allOptions.length,
         direct_buyers: buyerResult.rows.length,
         mandi_options: mandiResult.rows.length,
         best_profit: bestOption?.net_profit || 0,
-        best_location: bestOption?.city || 'N/A'
+        best_city: bestOption?.city || 'N/A',
+        best_distance: bestOption?.distance_km || 0
       },
       timestamp: new Date().toISOString()
     });
@@ -221,19 +251,15 @@ const updateBuyerPrice = async (req, res) => {
       });
     }
 
-    // Get or create buyer profile
     let buyerResult = await pool.query(
       'SELECT id FROM buyers WHERE user_id = $1', [userId]
     );
 
     if (buyerResult.rows.length === 0) {
-      // Get user info
       const userResult = await pool.query(
         'SELECT name, phone FROM users WHERE id = $1', [userId]
       );
       const user = userResult.rows[0];
-
-      // Create buyer profile
       const newBuyer = await pool.query(
         `INSERT INTO buyers (user_id, company_name, city, state, phone)
          VALUES ($1, $2, 'Kolkata', 'West Bengal', $3) RETURNING id`,
@@ -244,14 +270,12 @@ const updateBuyerPrice = async (req, res) => {
 
     const buyerId = buyerResult.rows[0].id;
 
-    // Deactivate old prices for this crop
     await pool.query(
       `UPDATE buyer_prices SET is_active = false
        WHERE buyer_id = $1 AND LOWER(crop_name) = LOWER($2)`,
       [buyerId, crop_name]
     );
 
-    // Insert new price
     await pool.query(
       `INSERT INTO buyer_prices (buyer_id, user_id, crop_name, price_per_kg, min_quantity, max_quantity)
        VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -265,99 +289,67 @@ const updateBuyerPrice = async (req, res) => {
 
   } catch (err) {
     console.error('Update price error:', err.message);
-    res.status(500).json({
-      success: false,
-      message: 'Error: ' + err.message
-    });
+    res.status(500).json({ success: false, message: 'Error: ' + err.message });
   }
 };
 
-// Get all buyer prices (for farmers to see)
 const getBuyerPrices = async (req, res) => {
   try {
     const { crop } = req.query;
-
     let query = `
-      SELECT 
-        bp.crop_name, bp.price_per_kg, bp.min_quantity, bp.max_quantity,
-        bp.date_updated,
-        b.company_name, b.city, b.district, b.state, b.phone
+      SELECT bp.crop_name, bp.price_per_kg, bp.min_quantity, bp.max_quantity,
+        bp.date_updated, b.company_name, b.city, b.district, b.state, b.phone
       FROM buyer_prices bp
       JOIN buyers b ON b.id = bp.buyer_id
       WHERE bp.is_active = true
         AND bp.date_updated >= CURRENT_DATE - INTERVAL '3 days'
     `;
     const params = [];
-
     if (crop) {
       query += ` AND LOWER(bp.crop_name) = LOWER($1)`;
       params.push(crop);
     }
-
     query += ' ORDER BY bp.price_per_kg DESC';
-
     const result = await pool.query(query, params);
-
-    res.json({
-      success: true,
-      prices: result.rows,
-      total: result.rows.length
-    });
-
+    res.json({ success: true, prices: result.rows, total: result.rows.length });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// Get buyer profile
 const getBuyerProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const result = await pool.query(
-      'SELECT * FROM buyers WHERE user_id = $1', [userId]
-    );
-
+    const result = await pool.query('SELECT * FROM buyers WHERE user_id = $1', [userId]);
     if (result.rows.length === 0) {
-      return res.json({ success: true, buyer: null });
+      return res.json({ success: true, buyer: null, active_prices: [] });
     }
-
     const prices = await pool.query(
       `SELECT * FROM buyer_prices WHERE buyer_id = $1 AND is_active = true ORDER BY date_updated DESC`,
       [result.rows[0].id]
     );
-
-    res.json({
-      success: true,
-      buyer: result.rows[0],
-      active_prices: prices.rows
-    });
+    res.json({ success: true, buyer: result.rows[0], active_prices: prices.rows });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// Update buyer profile
 const updateBuyerProfile = async (req, res) => {
   try {
     const { company_name, city, district, state, address, phone } = req.body;
     const userId = req.user.userId;
-
     const existing = await pool.query('SELECT id FROM buyers WHERE user_id = $1', [userId]);
-
     if (existing.rows.length > 0) {
       await pool.query(
-        `UPDATE buyers SET company_name=$1, city=$2, district=$3, state=$4, address=$5, phone=$6
-         WHERE user_id=$7`,
+        `UPDATE buyers SET company_name=$1, city=$2, district=$3, state=$4, address=$5, phone=$6 WHERE user_id=$7`,
         [company_name, city, district, state || 'West Bengal', address, phone, userId]
       );
     } else {
       await pool.query(
-        `INSERT INTO buyers (user_id, company_name, city, district, state, address, phone)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        `INSERT INTO buyers (user_id, company_name, city, district, state, address, phone) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
         [userId, company_name, city, district, state || 'West Bengal', address, phone]
       );
     }
-
     res.json({ success: true, message: 'Buyer profile updated!' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

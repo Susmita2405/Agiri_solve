@@ -34,6 +34,7 @@ app.use('/api/voice', require('./routes/voice'));
 app.use('/api/aimarket', require('./routes/aimarket'));
 app.use('/api/smartsell', require('./routes/smartsell'));
 app.use('/api/price', require('./routes/pricesuggestion'));
+app.use('/whatsapp', require('./routes/whatsapp'));
 
 // Health check
 app.get('/api/health', (req, res) => {
