@@ -188,3 +188,222 @@ async function getAISuggestion() {
   `;
   resultDiv.scrollIntoView({ behavior: 'smooth' });
 }
+
+// ============================================
+// SMART SELL SYSTEM
+// ============================================
+
+async function getSmartSellSuggestion() {
+  const crop = document.getElementById('ss-crop').value;
+  const qty = document.getElementById('ss-qty').value;
+  const city = document.getElementById('ss-city').value;
+
+  if (!crop || !qty) {
+    showToast('Please enter crop and quantity', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('ss-btn');
+  btn.disabled = true;
+  btn.textContent = '🤖 AI Finding Best Buyer...';
+
+  const token = localStorage.getItem('agrimind_token');
+  try {
+    const res = await fetch('http://localhost:3000/api/smartsell/suggest', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ crop_name: crop, quantity: qty, farmer_city: city })
+    });
+
+    const data = await res.json();
+    btn.disabled = false;
+    btn.textContent = '🎯 Find Best Buyer & Max Profit';
+
+    if (!data.success) {
+      showToast(data.message || 'Error', 'error');
+      return;
+    }
+
+    const resultDiv = document.getElementById('ss-result');
+    resultDiv.style.display = 'block';
+
+    const best = data.best_option;
+
+    resultDiv.innerHTML = `
+      <!-- Best Option -->
+      <div style="background:linear-gradient(135deg,#1a4d1a,#2d6a2d);color:#fff;border-radius:14px;padding:1.25rem;margin-bottom:1rem">
+        <div style="font-size:.85rem;opacity:.8;margin-bottom:.35rem">🏆 BEST OPTION FOR ${qty}kg ${crop.toUpperCase()}</div>
+        <div style="font-size:1.3rem;font-weight:800">${best.name}</div>
+        <div style="font-size:.9rem;opacity:.85">${best.badge} • ${best.city}, ${best.state}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-top:1rem">
+          <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:.6rem;text-align:center">
+            <div style="font-size:.72rem;opacity:.8">PRICE</div>
+            <div style="font-size:1.1rem;font-weight:800">₹${best.price_per_kg}/kg</div>
+          </div>
+          <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:.6rem;text-align:center">
+            <div style="font-size:.72rem;opacity:.8">TRANSPORT</div>
+            <div style="font-size:.9rem;font-weight:700">₹${best.transport.transportCost}</div>
+            <div style="font-size:.65rem;opacity:.7">${best.transport.vehicleType}</div>
+          </div>
+          <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:.6rem;text-align:center">
+            <div style="font-size:.72rem;opacity:.8">NET PROFIT</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#ffd700">₹${best.net_profit.toLocaleString('en-IN')}</div>
+          </div>
+        </div>
+        ${best.phone ? `<div style="margin-top:.75rem;font-size:.85rem">📞 Contact: <strong>${best.phone}</strong></div>` : ''}
+      </div>
+
+      <!-- AI Advice -->
+      <div style="background:#fff;border:2px solid #c8e6c9;border-radius:12px;padding:1rem;margin-bottom:1rem">
+        <h4 style="color:#1a4d1a;margin-bottom:.5rem">🤖 Groq AI Advice</h4>
+        <p style="font-size:.9rem;line-height:1.6;color:#2c3e2c;white-space:pre-wrap">${data.ai_advice}</p>
+      </div>
+
+      <!-- All Options -->
+      <div style="background:#fff;border-radius:12px;padding:1rem;border:1px solid #e8f5e9">
+        <h4 style="color:#1a4d1a;margin-bottom:.75rem">📊 All Options Compared</h4>
+        ${data.all_options.map((opt, i) => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem;border-bottom:1px solid #f0f7f0;border-radius:8px;${i===0?'background:#f0f7f0;':''}">
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:.9rem">${i===0?'🏆 ':''}${opt.name}</div>
+              <div style="font-size:.75rem;color:#6c8c6c">${opt.badge} • ${opt.city} • ${opt.transport.vehicleType}</div>
+              <div style="font-size:.75rem;color:#6c8c6c">
+                ₹${opt.price_per_kg}/kg × ${qty}kg - ₹${opt.transport.transportCost} transport
+              </div>
+            </div>
+            <div style="text-align:right;margin-left:1rem">
+              <div style="font-weight:800;color:${opt.net_profit >= 0 ? '#2d6a2d' : '#c0392b'};font-size:1rem">
+                ₹${opt.net_profit.toLocaleString('en-IN')}
+              </div>
+              <div style="font-size:.72rem;color:#6c8c6c">net profit</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="text-align:center;font-size:.75rem;color:#95b895;margin-top:.75rem">
+        ${data.summary.direct_buyers} direct buyers + ${data.summary.mandi_options} mandis compared
+      </div>
+    `;
+
+    resultDiv.scrollIntoView({ behavior: 'smooth' });
+
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = '🎯 Find Best Buyer & Max Profit';
+    showToast('Network error. Is backend running?', 'error');
+  }
+}
+
+async function loadBuyerPrices() {
+  const crop = document.getElementById('bp-filter')?.value || '';
+  const url = crop
+    ? `http://localhost:3000/api/smartsell/buyer/prices?crop=${crop}`
+    : `http://localhost:3000/api/smartsell/buyer/prices`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    const container = document.getElementById('buyer-prices-list');
+    if (!container) return;
+
+    if (!data.success || data.prices.length === 0) {
+      container.innerHTML = '<div class="loading-msg">No buyer prices found. Buyers need to update their prices.</div>';
+      return;
+    }
+
+    container.innerHTML = `
+      <table class="prices-table">
+        <thead>
+          <tr>
+            <th>Buyer</th>
+            <th>Crop</th>
+            <th>Price</th>
+            <th>Min Qty</th>
+            <th>City</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.prices.map(p => `
+            <tr>
+              <td><strong>${p.company_name}</strong></td>
+              <td>${p.crop_name}</td>
+              <td class="price-cell">₹${p.price_per_kg}/kg</td>
+              <td>${p.min_quantity || 0} kg</td>
+              <td>${p.city}</td>
+              <td style="font-size:.78rem;color:#6c8c6c">${p.date_updated}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    console.log('Buyer prices error:', err);
+  }
+}
+
+async function updateBuyerPrice() {
+  const crop = document.getElementById('bp-crop').value;
+  const price = document.getElementById('bp-price').value;
+  const minQty = document.getElementById('bp-min-qty').value;
+  const maxQty = document.getElementById('bp-max-qty').value;
+
+  if (!crop || !price) {
+    showToast('Enter crop name and price', 'error');
+    return;
+  }
+
+  const token = localStorage.getItem('agrimind_token');
+  const res = await fetch('http://localhost:3000/api/smartsell/buyer/price', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      crop_name: crop,
+      price_per_kg: price,
+      min_quantity: minQty,
+      max_quantity: maxQty
+    })
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    showToast('✅ Price updated successfully!', 'success');
+    document.getElementById('bp-result').innerHTML =
+      `<div style="background:#e8f5e9;padding:.6rem;border-radius:8px;color:#1a4d1a;font-size:.9rem">✅ ${data.message}</div>`;
+    loadMyBuyerPrices();
+    loadBuyerPrices();
+  } else {
+    showToast(data.message || 'Error updating price', 'error');
+  }
+}
+
+async function loadMyBuyerPrices() {
+  const token = localStorage.getItem('agrimind_token');
+  if (!token) return;
+
+  const res = await fetch('http://localhost:3000/api/smartsell/buyer/profile', {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  const data = await res.json();
+  const container = document.getElementById('my-buyer-prices');
+  if (!container) return;
+
+  if (!data.active_prices || data.active_prices.length === 0) {
+    container.innerHTML = '<p style="color:#6c8c6c;font-size:.85rem">No active prices yet</p>';
+    return;
+  }
+
+  container.innerHTML = data.active_prices.map(p => `
+    <div style="display:flex;justify-content:space-between;padding:.5rem;background:#f9fdf9;border-radius:6px;margin-bottom:.35rem">
+      <span>${p.crop_name}</span>
+      <strong style="color:#e67e22">₹${p.price_per_kg}/kg</strong>
+    </div>
+  `).join('');
+}

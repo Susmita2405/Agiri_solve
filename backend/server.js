@@ -32,6 +32,7 @@ app.use('/api/schemes', require('./routes/schemes'));
 app.use('/api/marketplace', require('./routes/marketplace'));
 app.use('/api/voice', require('./routes/voice'));
 app.use('/api/aimarket', require('./routes/aimarket'));
+app.use('/api/smartsell', require('./routes/smartsell'));
 app.use('/api/price', require('./routes/pricesuggestion'));
 
 // Health check

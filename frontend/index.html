@@ -350,6 +350,46 @@
         </div>
       </div>
 
+      <!-- Smart Sell System -->
+<div class="card" style="border:2px solid #1a4d1a;background:linear-gradient(135deg,#fff 80%,#f0f7f0)">
+  <h3 style="color:#1a4d1a">🎯 Smart Sell — Find Best Buyer</h3>
+  <p class="card-subtitle">Enter your crop details — AI finds the most profitable buyer including transport cost</p>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>🌾 Your Crop</label>
+      <input type="text" id="ss-crop" placeholder="e.g., Potato, Onion, Rice" />
+    </div>
+    <div class="form-group">
+      <label>⚖️ Quantity (kg)</label>
+      <input type="number" id="ss-qty" placeholder="e.g., 500" min="1" />
+    </div>
+  </div>
+  <div class="form-group">
+    <label>📍 Your City/District</label>
+    <input type="text" id="ss-city" placeholder="e.g., Bhatpara, Durgapur, Bardhaman" />
+  </div>
+  <button class="btn-primary btn-full" id="ss-btn" onclick="getSmartSellSuggestion()">
+    🎯 Find Best Buyer & Max Profit
+  </button>
+  <div id="ss-result" style="display:none;margin-top:1rem"></div>
+</div>
+
+<!-- Buyer Price Board -->
+<div class="card">
+  <h3>📋 Live Buyer Prices</h3>
+  <p class="card-subtitle">Prices updated by buyers daily</p>
+  <div class="filter-row">
+    <div class="form-group">
+      <label>🌾 Filter by Crop</label>
+      <input type="text" id="bp-filter" placeholder="e.g., Potato" oninput="loadBuyerPrices()" />
+    </div>
+  </div>
+  <div id="buyer-prices-list">
+    <div class="loading-msg">Loading buyer prices...</div>
+  </div>
+</div>
+
       <!-- ── MARKET PRICES PAGE ── -->
       <div id="page-market" class="page hidden">
         <div class="page-header">
@@ -730,6 +770,43 @@
           </form>
         </div>
       </div>
+
+      <!-- Buyer Price Update (only for buyers) -->
+<div class="card" id="buyer-price-section" style="display:none;border:2px solid #e67e22">
+  <h3 style="color:#e67e22">💼 Update Your Buying Prices</h3>
+  <p class="card-subtitle">Farmers will see your prices and contact you directly</p>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>🌾 Crop Name</label>
+      <input type="text" id="bp-crop" placeholder="e.g., Potato, Onion" />
+    </div>
+    <div class="form-group">
+      <label>💰 Your Buying Price (₹/kg)</label>
+      <input type="number" id="bp-price" placeholder="e.g., 18" step="0.5" />
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label>⚖️ Min Quantity (kg)</label>
+      <input type="number" id="bp-min-qty" placeholder="e.g., 100" />
+    </div>
+    <div class="form-group">
+      <label>⚖️ Max Quantity (kg)</label>
+      <input type="number" id="bp-max-qty" placeholder="e.g., 5000" />
+    </div>
+  </div>
+  <button class="btn-orange btn-full" onclick="updateBuyerPrice()">
+    📢 Update My Buying Price
+  </button>
+  <div id="bp-result" style="margin-top:.75rem"></div>
+
+  <div style="margin-top:1rem">
+    <h4>My Active Prices:</h4>
+    <div id="my-buyer-prices"></div>
+  </div>
+</div>
+
 
     </main><!-- /main-content -->
   </div><!-- /main-screen -->

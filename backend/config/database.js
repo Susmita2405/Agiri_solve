@@ -2,11 +2,15 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
-  connectionString: `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT) || 6543,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
   ssl: { rejectUnauthorized: false },
   max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  idleTimeoutMillis: 60000,
+  connectionTimeoutMillis: 10000,
 });
 
 pool.on('connect', () => {
@@ -17,7 +21,6 @@ pool.on('error', (err) => {
   console.error('❌ Database error:', err.message);
 });
 
-// Test connection on startup
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('❌ Connection test failed:', err.message);
